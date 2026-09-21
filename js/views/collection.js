@@ -35,7 +35,7 @@ export function buildCollection(host, fc){
   const card = el('div',{class:'card'});
   card.appendChild(el('h2',{}, 'Bảng thu theo đợt · Fund Collection'));
   card.appendChild(el('div',{class:'desc'},
-    'Số tiền mỗi người đóng theo sheet gốc. Bấm vào ô "Tham gia" để đánh dấu — xoay vòng o → x → trống. ' +
+    'Số tiền mỗi người đã đóng ở từng đợt. Bấm vào ô "Tham gia" để đánh dấu — xoay vòng o → x → trống. ' +
     'Cột <strong>Buổi tới</strong> ở cuối bảng dùng để ghi trước ai đã đóng tiền và ai sẽ tham gia cho buổi sắp diễn ra.'));
   card.appendChild(el('div',{id:'fcEditNote', class:'edit-note'}, 'Đang kết nối để bật chỉnh sửa…'));
 
