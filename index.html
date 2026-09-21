@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sổ Quỹ Duy Trì</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <span class="eyebrow">Nhóm duy trì · Sổ theo dõi</span>
+      <h1>Quỹ Duy Trì</h1>
+    </div>
+    <div class="source">
+      <span class="source-wrap">
+        <button type="button" id="syncBadge" class="sync-badge connecting" title="Trạng thái chỉnh sửa — bấm để đăng nhập / đăng xuất"><span class="dot"></span>Đang kết nối…</button>
+        <div id="loginBox" class="login-box" hidden>
+          <div class="msg">Chỉ chủ trang mới chỉnh sửa được. Nhập username để nhận link đăng nhập.</div>
+          <input type="text" id="loginUsername" placeholder="username" autocomplete="username">
+          <div class="row">
+            <button type="button" id="loginSendBtn">Gửi link</button>
+            <button type="button" id="loginCancelBtn" class="secondary">Đóng</button>
+          </div>
+          <div class="msg" id="loginMsg"></div>
+        </div>
+      </span>
+      Nguồn: <em>Quỹ duy trì.xlsx</em> · 5 sheet
+    </div>
+  </header>
+
+  <div class="stat-strip" id="statStrip"></div>
+
+  <nav class="tabs" id="tabs" role="tablist"></nav>
+
+  <div id="panels"></div>
+
+  <footer>
+    <span>Dữ liệu lấy đúng theo các sheet trong file gốc — không tự tính lại số liệu.</span>
+    <span id="genDate"></span>
+  </footer>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
