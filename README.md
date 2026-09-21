@@ -85,7 +85,7 @@ Ai cũng đọc được (public), chỉ chủ trang thêm/sửa/xoá được (
 
 Sau khi đăng nhập:
 
-- **Thu theo đợt** — gõ thẳng số tiền vào ô, bấm ô Tham gia để xoay o → x → trống. `+ Thêm người`, `+ Thêm đợt`; bấm `×` cuối tên để xoá người, bấm `⋯` trên đầu cột để đổi tên/ngày đợt hoặc xoá đợt (để trống tên rồi OK là xoá).
+- **Thu theo đợt** — một bảng duy nhất; gõ thẳng số tiền vào ô, bấm ô Tham gia để xoay o → x → trống. `+ Thêm người`, `+ Thêm đợt`; bấm `×` cuối tên để xoá người, bấm `⋯` trên đầu cột để đổi tên/ngày đợt hoặc xoá đợt (để trống tên rồi OK là xoá).
 - **Chi tiêu** — `+ Thêm khoản chi`, sửa trực tiếp từng ô, `×` để xoá.
 - **Điểm danh** — bấm o/x, cùng dữ liệu với cột Tham gia.
 - **Đóng góp** và **Tổng quan** — chỉ xem, tự tính.

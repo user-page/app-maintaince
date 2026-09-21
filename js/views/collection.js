@@ -4,13 +4,13 @@
 import { el, esc, fmt, amountSpan, fmtDate } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
-  memberTotal, periodTotal, periodJoinCount, periodPaidCount,
+  memberTotal, periodTotal, periodJoinCount,
   totalThu, totalChi, netTotal,
   setCell, cycleJoined, addMember, renameMember, deleteMember,
   addPeriod, updatePeriod, deletePeriod, onChange
 } from '../dataStore.js';
 
-let host = null, tableHost = null, quickHost = null, quickSumHost = null, toolbarHost = null;
+let host = null, tableHost = null, toolbarHost = null;
 
 function joinBtn(v, mid, pid){
   const cls = v === 'o' ? 'o' : v === 'x' ? 'x' : '';
@@ -48,17 +48,6 @@ export function buildCollection(mount){
   card.appendChild(totals);
   host.appendChild(card);
 
-  // thẻ nhập nhanh cho đợt cuối (thường là "Buổi tới") — dùng bằng một ngón trên điện thoại
-  const up = el('div', { class: 'card' });
-  up.appendChild(el('h2', { id: 'quickTitle' }, 'Nhập nhanh'));
-  up.appendChild(el('div', { class: 'desc' },
-    'Danh sách dọc cho đợt mới nhất, khỏi phải kéo ngang cả bảng trên điện thoại.'));
-  quickSumHost = el('div', { class: 'upcoming-sum' });
-  up.appendChild(quickSumHost);
-  quickHost = el('div', { class: 'upcoming-list' });
-  up.appendChild(quickHost);
-  host.appendChild(up);
-
   wireEvents();
   onChange(render);
   render();
@@ -67,7 +56,6 @@ export function buildCollection(mount){
 function render(){
   renderToolbar();
   renderTable();
-  renderQuick();
   renderGrandTotals();
 }
 
@@ -131,28 +119,6 @@ function renderTable(){
   scroll.appendChild(table);
   tableHost.innerHTML = '';
   tableHost.appendChild(scroll);
-}
-
-function renderQuick(){
-  const periods = getPeriods(), members = getMembers();
-  if(!periods.length){ quickHost.innerHTML = ''; quickSumHost.innerHTML = ''; return; }
-  const p = periods[periods.length - 1];
-  const t = document.getElementById('quickTitle');
-  if(t) t.textContent = 'Nhập nhanh · ' + (p.label || '') + (p.event_date ? ' (' + fmtDate(p.event_date) + ')' : '');
-
-  let html = '<div class="upcoming-row head"><span class="who">Người</span>' +
-    '<span class="cell">Đóng</span><span class="cell">Tham gia</span></div>';
-  members.forEach(function(m){
-    const c = cellFor(m.id, p.id);
-    html += '<div class="upcoming-row"><span class="who">' + esc(m.name) + '</span>' +
-      '<span class="cell">' + amountCell(c.amount, m.id, p.id) + '</span>' +
-      '<span class="cell">' + joinBtn(c.joined, m.id, p.id) + '</span></div>';
-  });
-  quickHost.innerHTML = html;
-  quickSumHost.innerHTML =
-    '<span class="pill good">Đã đóng: ' + periodPaidCount(p.id) + '/' + members.length + '</span>' +
-    '<span class="pill warn">Tham gia: ' + periodJoinCount(p.id) + '/' + members.length + '</span>' +
-    '<span class="pill muted">Thu đợt này: ' + fmt(periodTotal(p.id)) + '</span>';
 }
 
 function renderGrandTotals(){
