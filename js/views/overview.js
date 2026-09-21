@@ -1,19 +1,19 @@
 // Tab "Tổng quan": tổng thu/chi/chênh lệch, biểu đồ thu/chi, và số buổi từng người đã tham gia.
 import { el, fmt, amountSpan, esc } from '../utils.js';
 import { buildBarChart } from '../charts.js';
-import { atSessionsFor, onAtChange } from '../dataStore.js';
+import { fcPeriodsFor, onFcChange, PAST_PERIODS } from '../dataStore.js';
 
 let attendanceHost = null;
-let eaRef = null, rosterRef = null;
+let rosterRef = null, periodDatesRef = null;
 
 export function buildOverview(host, sheets){
-  const fc = sheets.fund_collection, ee = sheets.event_expenses,
-        ea = sheets.event_attendees;
-  eaRef = ea;
+  const fc = sheets.fund_collection, ee = sheets.event_expenses;
 
-  // Danh sách người lấy từ Bảng thu theo đợt (đủ 17 người) chứ không lấy từ bảng điểm danh
-  // (chỉ có 14) — để "tất cả thành viên" đúng nghĩa là tất cả.
+  // Cả danh sách người lẫn số buổi tham gia đều lấy từ Bảng thu theo đợt, KHÔNG lấy từ
+  // Bảng điểm danh: bảng điểm danh chỉ có 14 người và mới ghi 4 buổi (thiếu buổi 12/09),
+  // nên ai đi đủ 5 buổi vẫn bị đếm thành 4. Bảng thu theo đợt có đủ 17 người × 5 đợt.
   rosterRef = fc.rows.map(function(r, i){ return { name: r[1], slug: fc.slugs[i] }; });
+  periodDatesRef = fc.collect_dates;
 
   const chiByDate = {};
   ee.rows.forEach(function(r){
@@ -51,52 +51,42 @@ export function buildOverview(host, sheets){
   const card4 = el('div',{class:'card'});
   card4.appendChild(el('h2',{}, 'Số buổi tham gia'));
   card4.appendChild(el('div',{class:'desc'},
-    'Tất cả ' + rosterRef.length + ' thành viên và số buổi từng người đã tham gia, theo Bảng điểm danh — cập nhật ngay khi điểm danh thay đổi.'));
+    'Tất cả ' + rosterRef.length + ' thành viên, tính theo cột "Tham gia" trong Bảng thu theo đợt (' +
+    PAST_PERIODS + ' đợt đã diễn ra) — cập nhật ngay khi bạn đánh dấu ở tab Thu theo đợt.'));
   attendanceHost = el('div',{});
   card4.appendChild(attendanceHost);
   host.appendChild(card4);
 
-  onAtChange(renderAttendanceCounts);
+  onFcChange(renderAttendanceCounts);
   renderAttendanceCounts();
 }
 
 function renderAttendanceCounts(){
-  if(!attendanceHost || !eaRef || !rosterRef) return;
-  const tracked = {};
-  eaRef.slugs.forEach(function(s){ tracked[s] = true; });
+  if(!attendanceHost || !rosterRef) return;
 
   const rows = rosterRef.map(function(p){
-    // 3 người (Thảo Rùa, chị Dung, chị Anh) có trong bảng thu nhưng chưa có dòng nào trong
-    // bảng điểm danh — hiện 0 buổi kèm ghi chú, để không nhầm với "đi 0 buổi".
-    const inSheet = !!tracked[p.slug];
-    const count = inSheet
-      ? atSessionsFor(p.slug).filter(function(v){ return v==='o'; }).length
-      : 0;
-    return { name: p.name, count: count, inSheet: inSheet };
+    const periods = fcPeriodsFor(p.slug);
+    // chỉ đếm PAST_PERIODS đợt đã diễn ra — đợt "Buổi tới" là dự kiến, chưa tính là đã đi
+    let count = 0, joined = [];
+    for(let c=0;c<PAST_PERIODS;c++){
+      if(periods[c] && periods[c].join === 'o'){ count++; joined.push(periodDatesRef[c]); }
+    }
+    return { name: p.name, count: count, joined: joined };
   }).sort(function(a,b){
     if(b.count !== a.count) return b.count - a.count;
     return a.name.localeCompare(b.name, 'vi');
   });
 
-  const maxCount = rows.reduce(function(m,r){ return Math.max(m, r.count); }, 0);
   const list = el('div',{class:'bar-list'});
-  let anyMissing = false;
   rows.forEach(function(r){
-    const pct = maxCount>0 ? (r.count/maxCount*100) : 0;
+    const pct = (r.count / PAST_PERIODS) * 100;
     const fillCls = r.count===0 ? 'fill zero' : 'fill';
-    // dấu * gọn hơn ghi chú dài — chú thích đặt một lần ở cuối thẻ, đỡ bị cắt trên điện thoại
-    const mark = r.inSheet ? '' : '<span class="ink-3"> *</span>';
-    if(!r.inSheet) anyMissing = true;
-    const title = r.inSheet ? r.name : r.name + ' — chưa có trong bảng điểm danh';
+    const title = r.count ? r.name + ' — đã đi: ' + r.joined.join(', ') : r.name + ' — chưa đi buổi nào';
     list.appendChild(el('div',{class:'bar-row', title:title},
-      '<span class="name">'+esc(r.name)+mark+'</span>'+
+      '<span class="name">'+esc(r.name)+'</span>'+
       '<span class="track"><span class="'+fillCls+'" style="width:'+Math.max(pct, r.count===0?0:2)+'%"></span></span>'+
-      '<span class="amt num">'+r.count+' buổi</span>'));
+      '<span class="amt num">'+r.count+'/'+PAST_PERIODS+' buổi</span>'));
   });
   attendanceHost.innerHTML = '';
   attendanceHost.appendChild(list);
-  if(anyMissing){
-    attendanceHost.appendChild(el('div',{class:'bar-note'},
-      '* chưa có dòng nào trong Bảng điểm danh, nên tạm tính 0 buổi.'));
-  }
 }
