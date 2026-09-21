@@ -2,8 +2,10 @@
 // các phần khác của app chỉ nói chuyện qua dataStore.js.
 //
 // KHÔNG có email hay username thật nào được lưu trong code này (hay bất kỳ file nào trong repo
-// GitHub). Người chỉnh sửa gõ username của mình; trang gửi username đó lên một Edge Function
-// trên Supabase — nơi DUY NHẤT biết username và email thật — để function tự gửi magic link.
+// GitHub). Người chỉnh sửa gõ username; trang gửi username đó lên một Edge Function trên
+// Supabase — nơi DUY NHẤT biết username và email thật. Nếu đúng, function trả về một token
+// dùng-một-lần, client đổi ngay sang phiên đăng nhập thật (verifyOtp) nên bật chỉnh sửa luôn,
+// không phải mở email.
 // Sau khi đăng nhập, trang xác định có được ghi hay không bằng cách "thăm dò" một lần ghi thật
 // (xem probeEditPermission ở dưới), chứ không so sánh email ở phía client.
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
@@ -100,12 +102,18 @@ function wireLoginBox(){
     if(box){ box.hidden = !box.hidden; if(!box.hidden && userInput) userInput.focus(); }
   });
   if(cancelBtn) cancelBtn.addEventListener('click', function(){ if(box) box.hidden = true; });
-  if(sendBtn) sendBtn.addEventListener('click', function(){
+  function doLogin(){
     if(!userInput) return;
     const username = (userInput.value || '').trim();
     if(!username){ if(msg){ msg.textContent = 'Nhập username trước đã.'; msg.className = 'msg err'; } return; }
+    if(!sb){ if(msg){ msg.textContent = 'Chưa kết nối được máy chủ, thử lại sau giây lát.'; msg.className = 'msg err'; } return; }
+
     sendBtn.disabled = true;
-    if(msg){ msg.textContent = 'Đang gửi…'; msg.className = 'msg'; }
+    if(msg){ msg.textContent = 'Đang kiểm tra…'; msg.className = 'msg'; }
+
+    // Gửi username lên Edge Function (nơi duy nhất biết username/email thật).
+    // Nếu đúng, function trả về một token dùng 1 lần; đổi ngay token đó lấy phiên đăng nhập
+    // thật — không cần mở email, bật chỉnh sửa luôn.
     fetch(LOGIN_FUNCTION_URL, {
       method: 'POST',
       headers: {
@@ -113,19 +121,33 @@ function wireLoginBox(){
         'apikey': SUPABASE_ANON_KEY,
         'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
       },
-      body: JSON.stringify({
-        username: username,
-        redirectTo: window.location.origin + window.location.pathname
-      })
-    }).then(function(){
-      sendBtn.disabled = false;
-      // luôn hiện cùng một thông báo dù username đúng hay sai — tránh lộ username nào hợp lệ
-      if(msg){ msg.textContent = 'Nếu username đúng, một link đăng nhập đã được gửi tới email đã đăng ký. Mở email và bấm vào link (trên cùng thiết bị này) để bật chỉnh sửa.'; msg.className = 'msg ok'; }
+      body: JSON.stringify({ username: username })
+    }).then(function(r){ return r.json(); }).then(function(res){
+      if(!res || !res.ok || !res.token_hash){
+        sendBtn.disabled = false;
+        if(msg){ msg.textContent = 'Username không đúng.'; msg.className = 'msg err'; }
+        return;
+      }
+      return sb.auth.verifyOtp({ token_hash: res.token_hash, type: 'magiclink' }).then(function(v){
+        sendBtn.disabled = false;
+        if(v && v.error){
+          if(msg){ msg.textContent = 'Đăng nhập lỗi: ' + v.error.message; msg.className = 'msg err'; }
+          return;
+        }
+        if(msg){ msg.textContent = 'Đã đăng nhập — bật chỉnh sửa.'; msg.className = 'msg ok'; }
+        if(userInput) userInput.value = '';
+        if(box) box.hidden = true;
+        return applySession();
+      });
     }).catch(function(err){
       sendBtn.disabled = false;
-      if(msg){ msg.textContent = 'Lỗi gửi yêu cầu: ' + (err && err.message ? err.message : err); msg.className = 'msg err'; }
+      if(msg){ msg.textContent = 'Lỗi: ' + (err && err.message ? err.message : err); msg.className = 'msg err'; }
     });
-  });
+  }
+
+  if(sendBtn) sendBtn.addEventListener('click', doLogin);
+  // gõ xong bấm Enter là đăng nhập luôn, khỏi phải bấm nút
+  if(userInput) userInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') doLogin(); });
 }
 
 export async function initAuth(){

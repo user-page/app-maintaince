@@ -18,16 +18,15 @@
       <span class="source-wrap">
         <button type="button" id="syncBadge" class="sync-badge connecting" title="Trạng thái chỉnh sửa — bấm để đăng nhập / đăng xuất"><span class="dot"></span>Đang kết nối…</button>
         <div id="loginBox" class="login-box" hidden>
-          <div class="msg">Chỉ chủ trang mới chỉnh sửa được. Nhập username để nhận link đăng nhập.</div>
+          <div class="msg">Chỉ chủ trang mới chỉnh sửa được. Nhập username rồi bấm Đăng nhập.</div>
           <input type="text" id="loginUsername" placeholder="username" autocomplete="username">
           <div class="row">
-            <button type="button" id="loginSendBtn">Gửi link</button>
+            <button type="button" id="loginSendBtn">Đăng nhập</button>
             <button type="button" id="loginCancelBtn" class="secondary">Đóng</button>
           </div>
           <div class="msg" id="loginMsg"></div>
         </div>
       </span>
-      Nguồn: <em>Quỹ duy trì.xlsx</em> · 5 sheet
     </div>
   </header>
 
@@ -38,7 +37,6 @@
   <div id="panels"></div>
 
   <footer>
-    <span>Dữ liệu lấy đúng theo các sheet trong file gốc — không tự tính lại số liệu.</span>
     <span id="genDate"></span>
   </footer>
 </div>

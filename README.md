@@ -69,4 +69,8 @@ Username và email của chủ trang **không nằm trong bất kỳ file nào �
 - Policy RLS của các bảng trên (so khớp `auth.jwt() ->> 'email'`)
 - Edge Function `request-login-link` (Deno, deploy thẳng lên Supabase, không nằm trong thư mục này)
 
-Khi bấm nút đăng nhập và gõ username, trang gọi Edge Function đó; function kiểm tra username, nếu đúng thì tự gửi magic link tới email thật (chỉ nó biết), rồi luôn trả về cùng một câu trả lời chung — dù username đúng hay sai — để không ai đoán được username hợp lệ bằng cách dò thử. Sau khi đăng nhập, trang tự kiểm tra quyền ghi bằng cách thử ghi thật vào bảng `qdt_meta`, không so sánh email ở phía trình duyệt.
+Khi bấm nút đăng nhập và gõ username, trang gọi Edge Function đó. Function so username với giá trị nó giữ; nếu đúng thì dùng service-role key (chỉ có ở phía server) sinh một token đăng nhập **dùng một lần** và trả về cho trang. Trang đổi ngay token đó lấy phiên đăng nhập thật bằng `verifyOtp` — nên chỉnh sửa bật lên luôn, không phải mở email. Nếu username sai, function trả `{ ok: false }` và cố tình chậm lại ~0,7 giây cho việc dò tìm tốn thời gian hơn.
+
+Sau khi đăng nhập, trang tự kiểm tra quyền ghi bằng cách thử ghi thật vào bảng `qdt_meta`, không so sánh email ở phía trình duyệt. Phiên đăng nhập được lưu lại nên lần sau mở trang vẫn còn quyền sửa, tới khi bấm vào badge để đăng xuất.
+
+**Lưu ý bảo mật:** với cách này username đóng vai trò như mật khẩu — ai biết nó cũng chỉnh sửa được. Đổi username: sửa `OWNER_USERNAME` trong Edge Function rồi deploy lại (không đụng gì tới repo này). Muốn chắc hơn thì thêm một mã PIN kiểm tra cùng lúc trong chính function đó.
