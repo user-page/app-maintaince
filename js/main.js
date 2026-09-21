@@ -24,9 +24,9 @@ function buildStatStrip(sheets){
   const stats = [
     {label:'Tổng thu (Bảng thu theo đợt)', value:fmt(fc.tong_thu), cls:'good'},
     {label:'Tổng chi (Chi tiêu)', value:fmt(fc.tong_chi), cls:'bad'},
-    {label:'Quỹ dư (Sổ quỹ)', value:fmt(mf.balance), cls: mf.balance<0?'bad':'good'},
     {label:'Thành viên', value:memberCount, sub:'trong Bảng tổng hợp'},
-    {label:'Buổi đã diễn ra', value:sessionsHeld, sub:'trên '+ea.headers.length + ' cột buổi'},
+    // headers gồm 2 cột đầu là "No" và "Người" → số cột buổi thật sự là length - 2
+    {label:'Buổi đã diễn ra', value:sessionsHeld, sub:'trên '+(ea.headers.length-2) + ' cột buổi'},
     {label:'Giao dịch trong sổ', value:mf.rows.length, sub:'dòng ghi chép'}
   ];
   const strip = document.getElementById('statStrip');

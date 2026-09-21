@@ -1,15 +1,19 @@
-// Tab "Tổng quan": tổng thu/chi/chênh lệch, biểu đồ thu/chi, top đóng góp, số buổi mỗi người tham gia.
+// Tab "Tổng quan": tổng thu/chi/chênh lệch, biểu đồ thu/chi, và số buổi từng người đã tham gia.
 import { el, fmt, amountSpan, esc } from '../utils.js';
 import { buildBarChart } from '../charts.js';
 import { atSessionsFor, onAtChange } from '../dataStore.js';
 
 let attendanceHost = null;
-let eaRef = null;
+let eaRef = null, rosterRef = null;
 
 export function buildOverview(host, sheets){
   const fc = sheets.fund_collection, ee = sheets.event_expenses,
-        fs = sheets.fund_summary, ea = sheets.event_attendees;
+        ea = sheets.event_attendees;
   eaRef = ea;
+
+  // Danh sách người lấy từ Bảng thu theo đợt (đủ 17 người) chứ không lấy từ bảng điểm danh
+  // (chỉ có 14) — để "tất cả thành viên" đúng nghĩa là tất cả.
+  rosterRef = fc.rows.map(function(r, i){ return { name: r[1], slug: fc.slugs[i] }; });
 
   const chiByDate = {};
   ee.rows.forEach(function(r){
@@ -43,27 +47,11 @@ export function buildOverview(host, sheets){
   card.appendChild(buildBarChart(fc.collect_dates, thuByDate, chiByDate));
   host.appendChild(card);
 
-  // ----- Top đóng góp -----
-  const card3 = el('div',{class:'card'});
-  card3.appendChild(el('h2',{}, 'Top đóng góp'));
-  card3.appendChild(el('div',{class:'desc'}, '5 thành viên đóng nhiều nhất, theo Bảng tổng hợp đóng góp.'));
-  const top = fs.rows.slice().sort(function(a,b){return b[1]-a[1];}).slice(0,5);
-  const maxContrib = top.length ? top[0][1] : 1;
-  const list = el('div',{class:'bar-list'});
-  top.forEach(function(r){
-    const pct = maxContrib>0 ? Math.max((r[1]/maxContrib*100),2) : 2;
-    list.appendChild(el('div',{class:'bar-row'},
-      '<span class="name">'+esc(r[0])+'</span>'+
-      '<span class="track"><span class="fill" style="width:'+pct+'%"></span></span>'+
-      '<span class="amt num">'+fmt(r[1])+'</span>'));
-  });
-  card3.appendChild(list);
-  host.appendChild(card3);
-
   // ----- Số buổi tham gia (tất cả thành viên) -----
   const card4 = el('div',{class:'card'});
   card4.appendChild(el('h2',{}, 'Số buổi tham gia'));
-  card4.appendChild(el('div',{class:'desc'}, 'Mỗi thành viên đã tham gia bao nhiêu buổi, theo Bảng điểm danh — cập nhật ngay khi điểm danh thay đổi.'));
+  card4.appendChild(el('div',{class:'desc'},
+    'Tất cả ' + rosterRef.length + ' thành viên và số buổi từng người đã tham gia, theo Bảng điểm danh — cập nhật ngay khi điểm danh thay đổi.'));
   attendanceHost = el('div',{});
   card4.appendChild(attendanceHost);
   host.appendChild(card4);
@@ -73,25 +61,42 @@ export function buildOverview(host, sheets){
 }
 
 function renderAttendanceCounts(){
-  if(!attendanceHost || !eaRef) return;
-  const ea = eaRef;
-  const rows = ea.rows.map(function(r, idx){
-    const slug = ea.slugs[idx];
-    const sessions = atSessionsFor(slug);
-    const count = sessions.filter(function(v){ return v==='o'; }).length;
-    return { name: r[1], count: count };
-  }).sort(function(a,b){ return b.count - a.count; });
+  if(!attendanceHost || !eaRef || !rosterRef) return;
+  const tracked = {};
+  eaRef.slugs.forEach(function(s){ tracked[s] = true; });
 
-  const maxCount = rows.length ? Math.max.apply(null, rows.map(function(r){ return r.count; })) : 1;
+  const rows = rosterRef.map(function(p){
+    // 3 người (Thảo Rùa, chị Dung, chị Anh) có trong bảng thu nhưng chưa có dòng nào trong
+    // bảng điểm danh — hiện 0 buổi kèm ghi chú, để không nhầm với "đi 0 buổi".
+    const inSheet = !!tracked[p.slug];
+    const count = inSheet
+      ? atSessionsFor(p.slug).filter(function(v){ return v==='o'; }).length
+      : 0;
+    return { name: p.name, count: count, inSheet: inSheet };
+  }).sort(function(a,b){
+    if(b.count !== a.count) return b.count - a.count;
+    return a.name.localeCompare(b.name, 'vi');
+  });
+
+  const maxCount = rows.reduce(function(m,r){ return Math.max(m, r.count); }, 0);
   const list = el('div',{class:'bar-list'});
+  let anyMissing = false;
   rows.forEach(function(r){
     const pct = maxCount>0 ? (r.count/maxCount*100) : 0;
     const fillCls = r.count===0 ? 'fill zero' : 'fill';
-    list.appendChild(el('div',{class:'bar-row'},
-      '<span class="name">'+esc(r.name)+'</span>'+
+    // dấu * gọn hơn ghi chú dài — chú thích đặt một lần ở cuối thẻ, đỡ bị cắt trên điện thoại
+    const mark = r.inSheet ? '' : '<span class="ink-3"> *</span>';
+    if(!r.inSheet) anyMissing = true;
+    const title = r.inSheet ? r.name : r.name + ' — chưa có trong bảng điểm danh';
+    list.appendChild(el('div',{class:'bar-row', title:title},
+      '<span class="name">'+esc(r.name)+mark+'</span>'+
       '<span class="track"><span class="'+fillCls+'" style="width:'+Math.max(pct, r.count===0?0:2)+'%"></span></span>'+
       '<span class="amt num">'+r.count+' buổi</span>'));
   });
   attendanceHost.innerHTML = '';
   attendanceHost.appendChild(list);
+  if(anyMissing){
+    attendanceHost.appendChild(el('div',{class:'bar-note'},
+      '* chưa có dòng nào trong Bảng điểm danh, nên tạm tính 0 buổi.'));
+  }
 }
