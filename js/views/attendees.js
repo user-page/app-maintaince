@@ -1,57 +1,71 @@
-// Tab "Điểm danh" — ai tham gia buổi nào, các ô o/x bấm được khi đã đăng nhập.
-import { el, esc } from '../utils.js';
-import { atSessionsFor, getCanEdit, onAtChange } from '../dataStore.js';
+// Tab "Điểm danh" — CÙNG dữ liệu với cột "Tham gia" ở tab Thu theo đợt, chỉ khác cách trình bày
+// (bỏ cột tiền cho dễ nhìn). Sửa ở đây thì tab kia đổi theo và ngược lại — không còn hai nguồn lệch nhau.
+import { el, esc, fmtDate } from '../utils.js';
+import {
+  getMembers, getPeriods, cellFor, getCanEdit,
+  periodJoinCount, sessionsAttended, pastPeriods, cycleJoined, onChange
+} from '../dataStore.js';
 
-let atTableHost = null;
-let eaRef = null;
+let tableHost = null;
 
-function toggleCellHtml(v, kind, slug, idx){
-  const cls = v==='o' ? 'o' : v==='x' ? 'x' : '';
-  const label = v==='o' ? '✓ o' : v==='x' ? '✕ x' : '—';
-  const dis = getCanEdit() ? '' : ' disabled';
-  return '<button type="button" class="toggle-cell '+cls+'" data-kind="'+kind+'" data-slug="'+esc(slug)+'" data-idx="'+idx+'"'+dis+' aria-label="Đổi trạng thái">'+label+'</button>';
+export function buildAttendees(mount){
+  const card = el('div', { class: 'card' });
+  card.appendChild(el('h2', {}, 'Điểm danh'));
+  card.appendChild(el('div', { class: 'desc' },
+    'Ai có mặt ở buổi nào. Đây chính là cột "Tham gia" của tab Thu theo đợt — sửa ở đâu cũng như nhau.'));
+  card.appendChild(el('div', { id: 'atEditNote', class: 'edit-note' }, 'Đang kết nối để bật chỉnh sửa…'));
+  tableHost = el('div', {});
+  card.appendChild(tableHost);
+  mount.appendChild(card);
+
+  mount.addEventListener('click', function(e){
+    const b = e.target.closest && e.target.closest('button.toggle-cell');
+    if(b && !b.disabled) cycleJoined(Number(b.dataset.m), Number(b.dataset.p));
+  });
+
+  onChange(render);
+  render();
 }
 
-export function buildAttendees(host, ea){
-  eaRef = ea;
-  const card = el('div',{class:'card'});
-  card.appendChild(el('h2',{}, 'Điểm danh các buổi · Event Attendees'));
-  card.appendChild(el('div',{class:'desc'}, 'Bấm vào ô để đánh dấu ai tham gia buổi nhậu — xoay vòng o → x → trống. Buổi 5, 6 để trống cho các buổi sắp tới.'));
-  card.appendChild(el('div',{id:'atEditNote', class:'edit-note'}, 'Đang kết nối để bật chỉnh sửa…'));
-  atTableHost = el('div',{});
-  card.appendChild(atTableHost);
-  host.appendChild(card);
+function render(){
+  if(!tableHost) return;
+  const members = getMembers(), periods = getPeriods(), nPast = pastPeriods().length;
 
-  onAtChange(renderAttendeesTable);
-  renderAttendeesTable();
-}
+  let thead = '<thead><tr><th class="sticky-col">Người</th>';
+  periods.forEach(function(p){
+    const up = p.event_date ? '' : ' upcoming';
+    thead += '<th class="center' + up + '">' + esc(p.label || '') +
+      '<br><span class="sub-date">' + (p.event_date ? fmtDate(p.event_date) : 'chưa chốt') + '</span></th>';
+  });
+  thead += '<th class="num-col">Số buổi</th></tr></thead>';
 
-function renderAttendeesTable(){
-  if(!atTableHost || !eaRef) return;
-  const ea = eaRef;
-  const table = el('table',{class:'matrix'});
-  const sessionHeaders = ea.headers.slice(2); // Buổi 1..6
-  let thead = '<thead><tr><th class="sticky-col">Người</th>'+
-    sessionHeaders.map(function(h){ return '<th class="center">'+esc(h.replace(/\n/g,' '))+'</th>'; }).join('')+
-    '</tr></thead>';
+  let tbody = '<tbody>';
+  members.forEach(function(m){
+    tbody += '<tr><td class="sticky-col">' + esc(m.name) + '</td>';
+    periods.forEach(function(p){
+      const v = cellFor(m.id, p.id).joined;
+      const cls = v === 'o' ? 'o' : v === 'x' ? 'x' : '';
+      const label = v === 'o' ? '✓ o' : v === 'x' ? '✕ x' : '—';
+      const dis = getCanEdit() ? '' : ' disabled';
+      const up = p.event_date ? '' : ' upcoming';
+      tbody += '<td class="center' + up + '"><button type="button" class="toggle-cell ' + cls +
+        '" data-m="' + m.id + '" data-p="' + p.id + '"' + dis + '>' + label + '</button></td>';
+    });
+    tbody += '<td class="num-col num total-col">' + sessionsAttended(m.id) + '/' + nPast + '</td></tr>';
+  });
+  tbody += '</tbody>';
 
-  const counts = sessionHeaders.map(function(){ return 0; });
-  const tbody = '<tbody>'+ea.rows.map(function(r, idx){
-    const slug = ea.slugs[idx];
-    const sessions = atSessionsFor(slug);
-    const cells = sessions.map(function(v,i){
-      if(v==='o') counts[i]++;
-      return '<td class="center">'+toggleCellHtml(v,'at',slug,i)+'</td>';
-    }).join('');
-    return '<tr><td class="sticky-col">'+esc(r[1])+'</td>'+cells+'</tr>';
-  }).join('')+'</tbody>';
+  let tfoot = '<tfoot><tr><td class="sticky-col">Có mặt</td>';
+  periods.forEach(function(p){
+    const up = p.event_date ? '' : ' upcoming';
+    tfoot += '<td class="center num' + up + '">' + periodJoinCount(p.id) + '</td>';
+  });
+  tfoot += '<td class="num-col"></td></tr></tfoot>';
 
-  const tfoot = '<tfoot><tr><td class="sticky-col">Tổng có mặt</td>'+
-    counts.map(function(c){ return '<td class="center num">'+c+'</td>'; }).join('')+
-    '</tr></tfoot>';
-
-  table.innerHTML = thead+tbody+tfoot;
-  const scroll = el('div',{class:'table-scroll'}); scroll.appendChild(table);
-  atTableHost.innerHTML = '';
-  atTableHost.appendChild(scroll);
+  const table = el('table', { class: 'matrix' });
+  table.innerHTML = thead + tbody + tfoot;
+  const scroll = el('div', { class: 'table-scroll' });
+  scroll.appendChild(table);
+  tableHost.innerHTML = '';
+  tableHost.appendChild(scroll);
 }

@@ -1,7 +1,10 @@
-// Điểm khởi động của app: tải dữ liệu tĩnh, dựng khung tabs/panels, gắn sự kiện chung,
-// rồi mới kết nối Supabase (auth.js) để bật chỉnh sửa trực tiếp.
+// Điểm khởi động: dựng khung tabs/panels, nạp dữ liệu (Supabase, hoặc bản chụp tĩnh nếu
+// không kết nối được), rồi bật phần đăng nhập/chỉnh sửa.
 import { el, fmt } from './utils.js';
-import { init as initStore, getSheets, toggleFc, toggleAt } from './dataStore.js';
+import {
+  loadFallback, getMembers, getPeriods, getExpenses, pastPeriods,
+  totalThu, totalChi, netTotal, onChange
+} from './dataStore.js';
 import { initAuth } from './auth.js';
 import { buildOverview } from './views/overview.js';
 import { buildCollection } from './views/collection.js';
@@ -10,101 +13,75 @@ import { buildSummary } from './views/summary.js';
 import { buildAttendees } from './views/attendees.js';
 
 const TABS = [
-  {id:'overview', label:'Tổng quan'},
-  {id:'collection', label:'Thu theo đợt'},
-  {id:'expenses', label:'Chi tiêu'},
-  {id:'summary', label:'Đóng góp'},
-  {id:'attendees', label:'Điểm danh'}
+  { id: 'overview',   label: 'Tổng quan' },
+  { id: 'collection', label: 'Thu theo đợt' },
+  { id: 'expenses',   label: 'Chi tiêu' },
+  { id: 'summary',    label: 'Đóng góp' },
+  { id: 'attendees',  label: 'Điểm danh' }
 ];
 
-function buildStatStrip(sheets){
-  const mf = sheets.maintenance_fund, fc = sheets.fund_collection, fs = sheets.fund_summary, ea = sheets.event_attendees;
-  const memberCount = fs.rows.length;
-  const sessionsHeld = ea.totals_row.filter(function(v){ return v!==null && v!==undefined; }).length;
-  const stats = [
-    {label:'Tổng thu (Bảng thu theo đợt)', value:fmt(fc.tong_thu), cls:'good'},
-    {label:'Tổng chi (Chi tiêu)', value:fmt(fc.tong_chi), cls:'bad'},
-    {label:'Thành viên', value:memberCount, sub:'trong Bảng tổng hợp'},
-    // headers gồm 2 cột đầu là "No" và "Người" → số cột buổi thật sự là length - 2
-    {label:'Buổi đã diễn ra', value:sessionsHeld, sub:'trên '+(ea.headers.length-2) + ' cột buổi'},
-    {label:'Giao dịch trong sổ', value:mf.rows.length, sub:'dòng ghi chép'}
-  ];
+function renderStatStrip(){
   const strip = document.getElementById('statStrip');
-  stats.forEach(function(s){
-    strip.appendChild(el('div',{class:'stat'},
-      '<span class="label">'+s.label+'</span>'+
-      '<span class="value num '+(s.cls||'')+'">'+s.value+'</span>'+
-      (s.sub?'<span class="sub">'+s.sub+'</span>':'')));
-  });
+  if(!strip) return;
+  const net = netTotal();
+  const stats = [
+    { label: 'Tổng thu',    value: fmt(totalThu()), cls: 'good' },
+    { label: 'Tổng chi',    value: fmt(totalChi()), cls: 'bad' },
+    { label: 'Chênh lệch',  value: fmt(net), cls: net < 0 ? 'bad' : 'good' },
+    { label: 'Thành viên',  value: getMembers().length },
+    { label: 'Đợt đã diễn ra', value: pastPeriods().length, sub: 'trên ' + getPeriods().length + ' đợt' },
+    { label: 'Khoản chi',   value: getExpenses().length, sub: 'dòng ghi chép' }
+  ];
+  strip.innerHTML = stats.map(function(s){
+    return '<div class="stat"><span class="label">' + s.label + '</span>' +
+      '<span class="value num ' + (s.cls || '') + '">' + s.value + '</span>' +
+      (s.sub ? '<span class="sub">' + s.sub + '</span>' : '') + '</div>';
+  }).join('');
 }
 
 function makePanel(id, hidden){
-  return el('section', {class:'panel', id:'panel-'+id, role:'tabpanel', 'aria-labelledby':'tab-'+id, hidden: hidden?'':null});
+  return el('section', { class: 'panel', id: 'panel-' + id, role: 'tabpanel',
+    'aria-labelledby': 'tab-' + id, hidden: hidden ? '' : null });
 }
 
 function selectTab(id){
   TABS.forEach(function(t){
-    document.getElementById('tab-'+t.id).setAttribute('aria-selected', t.id===id ? 'true':'false');
-    document.getElementById('panel-'+t.id).hidden = t.id!==id;
+    document.getElementById('tab-' + t.id).setAttribute('aria-selected', t.id === id ? 'true' : 'false');
+    document.getElementById('panel-' + t.id).hidden = t.id !== id;
   });
 }
 
-function buildTabsAndPanels(sheets){
-  const tabsNav = document.getElementById('tabs');
-  const panelsHost = document.getElementById('panels');
+function buildTabsAndPanels(){
+  const nav = document.getElementById('tabs');
+  const panels = document.getElementById('panels');
   TABS.forEach(function(t, i){
-    const btn = el('button', {role:'tab', id:'tab-'+t.id, 'aria-controls':'panel-'+t.id,
-      'aria-selected': i===0 ? 'true':'false'}, t.label);
+    const btn = el('button', { role: 'tab', id: 'tab-' + t.id, 'aria-controls': 'panel-' + t.id,
+      'aria-selected': i === 0 ? 'true' : 'false' }, t.label);
     btn.addEventListener('click', function(){ selectTab(t.id); });
-    tabsNav.appendChild(btn);
+    nav.appendChild(btn);
   });
 
-  const pOverview = makePanel('overview', false);
-  panelsHost.appendChild(pOverview);
-  buildOverview(pOverview, sheets);
-
-  const pCollection = makePanel('collection', true);
-  panelsHost.appendChild(pCollection);
-  buildCollection(pCollection, sheets.fund_collection);
-
-  const pExpenses = makePanel('expenses', true);
-  panelsHost.appendChild(pExpenses);
-  buildExpenses(pExpenses, sheets.event_expenses);
-
-  const pSummary = makePanel('summary', true);
-  panelsHost.appendChild(pSummary);
-  buildSummary(pSummary, sheets.fund_summary);
-
-  const pAttendees = makePanel('attendees', true);
-  panelsHost.appendChild(pAttendees);
-  buildAttendees(pAttendees, sheets.event_attendees);
-}
-
-function wireToggleClicks(){
-  document.addEventListener('click', function(e){
-    const btn = e.target.closest && e.target.closest('button.toggle-cell');
-    if(!btn || btn.disabled) return;
-    const kind = btn.getAttribute('data-kind');
-    const slug = btn.getAttribute('data-slug');
-    const idx = Number(btn.getAttribute('data-idx'));
-    const field = btn.getAttribute('data-field') || 'join';
-    if(kind==='fc') toggleFc(slug, idx, field);
-    else if(kind==='at') toggleAt(slug, idx);
-  });
+  const p1 = makePanel('overview', false);   panels.appendChild(p1); buildOverview(p1);
+  const p2 = makePanel('collection', true);  panels.appendChild(p2); buildCollection(p2);
+  const p3 = makePanel('expenses', true);    panels.appendChild(p3); buildExpenses(p3);
+  const p4 = makePanel('summary', true);     panels.appendChild(p4); buildSummary(p4);
+  const p5 = makePanel('attendees', true);   panels.appendChild(p5); buildAttendees(p5);
 }
 
 async function boot(){
-  const res = await fetch('data/fund-data.json');
-  const DATA = await res.json();
-  initStore(DATA);
-  const sheets = getSheets();
+  // Nạp bản chụp tĩnh trước để trang hiện ra ngay và vẫn xem được kể cả khi mất mạng;
+  // auth.js sẽ nạp đè dữ liệu thật từ Supabase ngay sau đó.
+  try{
+    const res = await fetch('data/snapshot.json');
+    loadFallback(await res.json());
+  }catch(e){ console.error('Không đọc được bản chụp tĩnh', e); }
 
-  buildStatStrip(sheets);
-  buildTabsAndPanels(sheets);
-  wireToggleClicks();
+  buildTabsAndPanels();
+  onChange(renderStatStrip);
+  renderStatStrip();
 
-  const genDate = document.getElementById('genDate');
-  if(genDate) genDate.textContent = 'Trang tạo ' + new Date().toLocaleDateString('vi-VN');
+  const g = document.getElementById('genDate');
+  if(g) g.textContent = 'Cập nhật ' + new Date().toLocaleDateString('vi-VN');
 
   initAuth();
 }

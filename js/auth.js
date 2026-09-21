@@ -11,8 +11,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import {
   setSupabaseClient, setCanEdit, getCanEdit,
-  bulkSetLiveFc, bulkSetLiveAt, setLiveFcRow, setLiveAtRow,
-  onPermissionDenied
+  loadAll, subscribeRealtime, onPermissionDenied
 } from './dataStore.js';
 
 const LOGIN_FUNCTION_URL = SUPABASE_URL + '/functions/v1/request-login-link';
@@ -38,33 +37,6 @@ function setSyncStatus(status){
         ? 'Không kết nối được tới máy chủ dữ liệu — đang hiển thị bản dữ liệu tĩnh, chỉ xem.'
         : 'Đang kết nối để kiểm tra quyền chỉnh sửa…';
   notes.forEach(function(n){ if(n){ n.textContent = msg; n.className = 'edit-note' + (status==='editor' ? ' live' : ''); } });
-}
-
-function loadInitialData(){
-  if(!sb) return;
-  Promise.all([
-    sb.from('qdt_fund_collection').select('slug,periods'),
-    sb.from('qdt_attendees').select('slug,sessions')
-  ]).then(function(results){
-    const fcRes = results[0], atRes = results[1];
-    if(!fcRes.error && fcRes.data) bulkSetLiveFc(fcRes.data);
-    if(!atRes.error && atRes.data) bulkSetLiveAt(atRes.data);
-  }).catch(function(err){ console.error('Không tải được dữ liệu trực tiếp', err); });
-}
-
-function subscribeRealtime(){
-  if(!sb || realtimeSubscribed) return;
-  realtimeSubscribed = true;
-  sb.channel('qdt-fc')
-    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_fund_collection' }, function(payload){
-      const row = payload.new;
-      if(row && row.slug) setLiveFcRow(row.slug, row.periods);
-    }).subscribe();
-  sb.channel('qdt-at')
-    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_attendees' }, function(payload){
-      const row = payload.new;
-      if(row && row.slug) setLiveAtRow(row.slug, row.sessions);
-    }).subscribe();
 }
 
 // Không có email nào để so sánh ở đây — cách chắc chắn duy nhất để biết phiên đăng nhập hiện
@@ -172,7 +144,10 @@ export async function initAuth(){
 
   setSupabaseClient(sb);
   onPermissionDenied(function(){ setSyncStatus('viewer'); });
-  loadInitialData();
+
+  // nạp đè dữ liệu thật lên bản chụp tĩnh; nếu không tải được thì giữ bản tĩnh để vẫn xem được
+  const ok = await loadAll();
+  if(!ok){ setSyncStatus('unavailable'); return; }
   subscribeRealtime();
 
   await applySession();

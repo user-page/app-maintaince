@@ -1,149 +1,235 @@
-// Tab "Thu theo đợt" — bảng ma trận Đóng/Tham gia, các ô o/x bấm được khi đã đăng nhập.
-// 5 đợt đầu lấy từ file Excel (cột "Đóng" là số tiền, chỉ xem). Đợt cuối là "Buổi tới":
-// chưa có số tiền, nên cả "Đóng" lẫn "Tham gia" đều là ô o/x nhập tay.
-import { el, esc, fmt, amountSpan } from '../utils.js';
-import { fcPeriodsFor, getCanEdit, onFcChange, PAST_PERIODS, UPCOMING_IDX, PERIOD_COUNT } from '../dataStore.js';
+// Tab "Thu theo đợt" — bảng chính, cũng là nơi nhập liệu.
+// Mỗi ô có 2 phần: số tiền đóng (gõ được) và trạng thái tham gia (bấm o/x).
+// Thêm/xoá được cả người lẫn đợt. Mọi tab khác đọc lại cùng dữ liệu này nên luôn khớp.
+import { el, esc, fmt, amountSpan, fmtDate } from '../utils.js';
+import {
+  getMembers, getPeriods, cellFor, getCanEdit,
+  memberTotal, periodTotal, periodJoinCount, periodPaidCount,
+  totalThu, totalChi, netTotal,
+  setCell, cycleJoined, addMember, renameMember, deleteMember,
+  addPeriod, updatePeriod, deletePeriod, onChange
+} from '../dataStore.js';
 
-let fcTableHost = null, fcTotalsHost = null, upcomingHost = null, upcomingSumHost = null;
-let fcRef = null;
+let host = null, tableHost = null, quickHost = null, quickSumHost = null, toolbarHost = null;
 
-function toggleCellHtml(v, kind, slug, idx, field){
-  const cls = v==='o' ? 'o' : v==='x' ? 'x' : '';
-  const label = v==='o' ? '✓ o' : v==='x' ? '✕ x' : '—';
+function joinBtn(v, mid, pid){
+  const cls = v === 'o' ? 'o' : v === 'x' ? 'x' : '';
+  const label = v === 'o' ? '✓ o' : v === 'x' ? '✕ x' : '—';
   const dis = getCanEdit() ? '' : ' disabled';
-  const aria = field==='pay' ? 'Đổi trạng thái đã đóng tiền' : 'Đổi trạng thái tham gia';
-  return '<button type="button" class="toggle-cell '+cls+'" data-kind="'+kind+'" data-slug="'+esc(slug)+
-    '" data-idx="'+idx+'" data-field="'+(field||'join')+'"'+dis+' aria-label="'+aria+'">'+label+'</button>';
+  return '<button type="button" class="toggle-cell ' + cls + '" data-act="join" data-m="' + mid +
+    '" data-p="' + pid + '"' + dis + ' aria-label="Đổi trạng thái tham gia">' + label + '</button>';
 }
 
-export function buildCollection(host, fc){
-  fcRef = fc;
+function amountCell(v, mid, pid){
+  if(!getCanEdit()){
+    return '<span class="amt-view">' + (v === null ? '—' : fmt(v)) + '</span>';
+  }
+  return '<input class="amt-in" type="number" inputmode="decimal" step="1" data-act="amount" data-m="' + mid +
+    '" data-p="' + pid + '" value="' + (v === null ? '' : v) + '" placeholder="—">';
+}
 
-  // ----- Thẻ nhập nhanh cho "buổi tới" -----
-  // Đặt lên đầu tab vì đây là thứ hay dùng nhất, và trên điện thoại thì khỏi phải kéo ngang
-  // hết 12 cột của bảng ma trận mới tới được cột "Buổi tới".
-  const up = el('div',{class:'card'});
-  up.appendChild(el('h2',{}, 'Buổi tới · ai đã đóng tiền'));
-  up.appendChild(el('div',{class:'desc'},
-    'Ghi trước cho buổi sắp diễn ra: bấm ô <strong>Đóng</strong> khi ai đó đã đưa tiền, ô <strong>Tham gia</strong> khi họ xác nhận đi. Mỗi ô xoay vòng o → x → trống.'));
-  upcomingSumHost = el('div',{class:'upcoming-sum'});
-  up.appendChild(upcomingSumHost);
-  upcomingHost = el('div',{class:'upcoming-list'});
-  up.appendChild(upcomingHost);
-  host.appendChild(up);
+export function buildCollection(mount){
+  host = mount;
 
-  const card = el('div',{class:'card'});
-  card.appendChild(el('h2',{}, 'Bảng thu theo đợt · Fund Collection'));
-  card.appendChild(el('div',{class:'desc'},
-    'Số tiền mỗi người đã đóng ở từng đợt. Bấm vào ô "Tham gia" để đánh dấu — xoay vòng o → x → trống. ' +
-    'Cột <strong>Buổi tới</strong> ở cuối bảng dùng để ghi trước ai đã đóng tiền và ai sẽ tham gia cho buổi sắp diễn ra.'));
-  card.appendChild(el('div',{id:'fcEditNote', class:'edit-note'}, 'Đang kết nối để bật chỉnh sửa…'));
+  const card = el('div', { class: 'card' });
+  card.appendChild(el('h2', {}, 'Bảng thu theo đợt'));
+  card.appendChild(el('div', { class: 'desc' },
+    'Nhập số tiền mỗi người đóng và bấm ô Tham gia (o → x → trống). ' +
+    'Mọi con số ở các tab khác — Đóng góp, Tổng thu/chi/chênh lệch, số buổi tham gia — đều tính ra từ bảng này.'));
+  card.appendChild(el('div', { id: 'fcEditNote', class: 'edit-note' }, 'Đang kết nối để bật chỉnh sửa…'));
 
-  fcTableHost = el('div',{});
-  card.appendChild(fcTableHost);
+  toolbarHost = el('div', { class: 'toolbar' });
+  card.appendChild(toolbarHost);
 
-  fcTotalsHost = el('div',{style:'display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;font-size:13px'});
-  card.appendChild(fcTotalsHost);
+  tableHost = el('div', {});
+  card.appendChild(tableHost);
 
+  const totals = el('div', { class: 'grand-totals', id: 'fcGrandTotals' });
+  card.appendChild(totals);
   host.appendChild(card);
 
-  onFcChange(renderAll);
-  renderAll();
+  // thẻ nhập nhanh cho đợt cuối (thường là "Buổi tới") — dùng bằng một ngón trên điện thoại
+  const up = el('div', { class: 'card' });
+  up.appendChild(el('h2', { id: 'quickTitle' }, 'Nhập nhanh'));
+  up.appendChild(el('div', { class: 'desc' },
+    'Danh sách dọc cho đợt mới nhất, khỏi phải kéo ngang cả bảng trên điện thoại.'));
+  quickSumHost = el('div', { class: 'upcoming-sum' });
+  up.appendChild(quickSumHost);
+  quickHost = el('div', { class: 'upcoming-list' });
+  up.appendChild(quickHost);
+  host.appendChild(up);
+
+  wireEvents();
+  onChange(render);
+  render();
 }
 
-function renderAll(){
-  renderUpcomingList();
-  renderCollectionTable();
+function render(){
+  renderToolbar();
+  renderTable();
+  renderQuick();
+  renderGrandTotals();
 }
 
-// Danh sách dọc, 1 dòng 1 người, 2 ô bấm — dùng được thoải mái trên điện thoại.
-function renderUpcomingList(){
-  if(!upcomingHost || !fcRef) return;
-  const fc = fcRef;
-  let paid = 0, joining = 0;
-
-  let html = '<div class="upcoming-row head"><span class="who">Người</span>' +
-    '<span class="cell">Đóng</span><span class="cell">Tham gia</span></div>';
-  fc.rows.forEach(function(r, idx){
-    const slug = fc.slugs[idx];
-    const p = fcPeriodsFor(slug)[UPCOMING_IDX] || {};
-    if(p.pay==='o') paid++;
-    if(p.join==='o') joining++;
-    html += '<div class="upcoming-row">' +
-      '<span class="who">'+esc(r[1])+'</span>' +
-      '<span class="cell">'+toggleCellHtml(p.pay,'fc',slug,UPCOMING_IDX,'pay')+'</span>' +
-      '<span class="cell">'+toggleCellHtml(p.join,'fc',slug,UPCOMING_IDX,'join')+'</span>' +
-      '</div>';
-  });
-  upcomingHost.innerHTML = html;
-
-  if(upcomingSumHost){
-    upcomingSumHost.innerHTML =
-      '<span class="pill good">Đã đóng: '+paid+'/'+fc.rows.length+'</span>' +
-      '<span class="pill warn">Sẽ tham gia: '+joining+'/'+fc.rows.length+'</span>';
-  }
+function renderToolbar(){
+  if(!toolbarHost) return;
+  toolbarHost.innerHTML = getCanEdit()
+    ? '<button type="button" class="chip" data-act="add-member">+ Thêm người</button>' +
+      '<button type="button" class="chip" data-act="add-period">+ Thêm đợt</button>'
+    : '';
 }
 
-function renderCollectionTable(){
-  if(!fcTableHost || !fcRef) return;
-  const fc = fcRef;
-  const table = el('table',{class:'matrix'});
-  // "Đợt N (ngày)" trải ngang phía trên, căn giữa cặp cột của nó — vẫn chỉ 2 cột dữ liệu
-  // thật sự cho mỗi đợt (Đóng, Tham gia), không thêm cột riêng.
+function renderTable(){
+  const members = getMembers(), periods = getPeriods();
+
   let thead = '<thead><tr><th class="sticky-col" rowspan="2">Người</th>';
-  fc.collect_dates.forEach(function(d,i){
-    thead += '<th class="num-col" colspan="2">Đợt '+(i+1)+'<br><span style="font-weight:400;text-transform:none;letter-spacing:0">'+d+'</span></th>';
+  periods.forEach(function(p){
+    const up = p.event_date ? '' : ' upcoming';
+    const edit = getCanEdit()
+      ? '<button type="button" class="col-edit" data-act="edit-period" data-p="' + p.id + '" title="Sửa / xoá đợt">⋯</button>'
+      : '';
+    thead += '<th class="center' + up + '" colspan="2">' + esc(p.label || '') + edit +
+      '<br><span class="sub-date">' + (p.event_date ? fmtDate(p.event_date) : 'chưa chốt ngày') + '</span></th>';
   });
-  thead += '<th class="center upcoming" colspan="2">Buổi tới<br><span style="font-weight:400;text-transform:none;letter-spacing:0">chưa chốt ngày</span></th>';
-  thead += '</tr><tr>';
-  fc.collect_dates.forEach(function(){ thead += '<th class="num-col">Đóng</th><th class="center">Tham gia</th>'; });
-  thead += '<th class="center upcoming">Đóng</th><th class="center upcoming">Tham gia</th>';
+  thead += '<th class="num-col" rowspan="2">Tổng đóng</th></tr><tr>';
+  periods.forEach(function(p){
+    const up = p.event_date ? '' : ' upcoming';
+    thead += '<th class="num-col' + up + '">Đóng</th><th class="center' + up + '">Tham gia</th>';
+  });
   thead += '</tr></thead>';
 
-  const joinCounts = new Array(PERIOD_COUNT).fill(0);
-  let upcomingPaidCount = 0;
   let tbody = '<tbody>';
-  fc.rows.forEach(function(r, idx){
-    const slug = fc.slugs[idx];
-    const periods = fcPeriodsFor(slug);
-    tbody += '<tr><td class="sticky-col">'+esc(r[1])+'</td>';
-    for(let c=0;c<PERIOD_COUNT;c++){
-      const pay = periods[c].pay, join = periods[c].join;
-      if(join==='o') joinCounts[c]++;
-      if(c===UPCOMING_IDX){
-        // buổi tới: chưa có số tiền → ô "Đóng" cũng là o/x bấm được
-        if(pay==='o') upcomingPaidCount++;
-        tbody += '<td class="center upcoming">'+toggleCellHtml(pay,'fc',slug,c,'pay')+'</td>'+
-          '<td class="center upcoming">'+toggleCellHtml(join,'fc',slug,c,'join')+'</td>';
-      } else {
-        tbody += '<td class="num-col">'+amountSpan(pay)+'</td>'+
-          '<td class="center">'+toggleCellHtml(join,'fc',slug,c,'join')+'</td>';
-      }
-    }
-    tbody += '</tr>';
+  members.forEach(function(m){
+    const del = getCanEdit()
+      ? '<button type="button" class="row-del" data-act="del-member" data-m="' + m.id + '" title="Xoá người này">×</button>'
+      : '';
+    const nameCell = getCanEdit()
+      ? '<span class="name-edit" data-act="rename-member" data-m="' + m.id + '" title="Bấm để đổi tên">' + esc(m.name) + '</span>'
+      : esc(m.name);
+    tbody += '<tr><td class="sticky-col">' + nameCell + del + '</td>';
+    periods.forEach(function(p){
+      const c = cellFor(m.id, p.id);
+      const up = p.event_date ? '' : ' upcoming';
+      tbody += '<td class="num-col' + up + '">' + amountCell(c.amount, m.id, p.id) + '</td>' +
+        '<td class="center' + up + '">' + joinBtn(c.joined, m.id, p.id) + '</td>';
+    });
+    tbody += '<td class="num-col num total-col">' + fmt(memberTotal(m.id)) + '</td></tr>';
   });
   tbody += '</tbody>';
 
   let tfoot = '<tfoot><tr><td class="sticky-col">Tổng</td>';
-  for(let c=0;c<PAST_PERIODS;c++){
-    tfoot += '<td class="num-col num">'+fmt(fc.totals_row[2+c*2])+'</td>'+
-      '<td class="center num">'+joinCounts[c]+'</td>';
-  }
-  tfoot += '<td class="center num upcoming">'+upcomingPaidCount+'</td>'+
-    '<td class="center num upcoming">'+joinCounts[UPCOMING_IDX]+'</td>';
-  tfoot += '</tr></tfoot>';
+  periods.forEach(function(p){
+    const up = p.event_date ? '' : ' upcoming';
+    tfoot += '<td class="num-col num' + up + '">' + fmt(periodTotal(p.id)) + '</td>' +
+      '<td class="center num' + up + '">' + periodJoinCount(p.id) + '</td>';
+  });
+  tfoot += '<td class="num-col num total-col">' + fmt(totalThu()) + '</td></tr></tfoot>';
 
-  table.innerHTML = thead+tbody+tfoot;
-  const scroll = el('div',{class:'table-scroll'}); scroll.appendChild(table);
-  fcTableHost.innerHTML = '';
-  fcTableHost.appendChild(scroll);
+  const table = el('table', { class: 'matrix' });
+  table.innerHTML = thead + tbody + tfoot;
+  const scroll = el('div', { class: 'table-scroll' });
+  scroll.appendChild(table);
+  tableHost.innerHTML = '';
+  tableHost.appendChild(scroll);
+}
 
-  if(fcTotalsHost){
-    fcTotalsHost.innerHTML =
-      '<span>Tổng thu: '+amountSpan(fc.tong_thu)+'</span>'+
-      '<span>Tổng chi: '+amountSpan(fc.tong_chi)+'</span>'+
-      '<span>Chênh lệch: '+amountSpan(fc.net)+'</span>'+
-      '<span>Buổi tới — đã đóng: <strong class="num">'+upcomingPaidCount+'</strong>/'+fc.rows.length+
-      ' · sẽ tham gia: <strong class="num">'+joinCounts[UPCOMING_IDX]+'</strong>/'+fc.rows.length+'</span>';
+function renderQuick(){
+  const periods = getPeriods(), members = getMembers();
+  if(!periods.length){ quickHost.innerHTML = ''; quickSumHost.innerHTML = ''; return; }
+  const p = periods[periods.length - 1];
+  const t = document.getElementById('quickTitle');
+  if(t) t.textContent = 'Nhập nhanh · ' + (p.label || '') + (p.event_date ? ' (' + fmtDate(p.event_date) + ')' : '');
+
+  let html = '<div class="upcoming-row head"><span class="who">Người</span>' +
+    '<span class="cell">Đóng</span><span class="cell">Tham gia</span></div>';
+  members.forEach(function(m){
+    const c = cellFor(m.id, p.id);
+    html += '<div class="upcoming-row"><span class="who">' + esc(m.name) + '</span>' +
+      '<span class="cell">' + amountCell(c.amount, m.id, p.id) + '</span>' +
+      '<span class="cell">' + joinBtn(c.joined, m.id, p.id) + '</span></div>';
+  });
+  quickHost.innerHTML = html;
+  quickSumHost.innerHTML =
+    '<span class="pill good">Đã đóng: ' + periodPaidCount(p.id) + '/' + members.length + '</span>' +
+    '<span class="pill warn">Tham gia: ' + periodJoinCount(p.id) + '/' + members.length + '</span>' +
+    '<span class="pill muted">Thu đợt này: ' + fmt(periodTotal(p.id)) + '</span>';
+}
+
+function renderGrandTotals(){
+  const g = document.getElementById('fcGrandTotals');
+  if(!g) return;
+  g.innerHTML =
+    '<span>Tổng thu: ' + amountSpan(totalThu()) + '</span>' +
+    '<span>Tổng chi: ' + amountSpan(totalChi()) + '</span>' +
+    '<span>Chênh lệch: ' + amountSpan(netTotal()) + '</span>';
+}
+
+function wireEvents(){
+  // số tiền: ghi khi rời ô hoặc bấm Enter
+  host.addEventListener('change', function(e){
+    const inp = e.target.closest && e.target.closest('input.amt-in');
+    if(!inp) return;
+    const raw = inp.value.trim();
+    setCell(Number(inp.dataset.m), Number(inp.dataset.p), { amount: raw === '' ? null : Number(raw) });
+  });
+  host.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && e.target.closest && e.target.closest('input.amt-in')) e.target.blur();
+  });
+
+  host.addEventListener('click', function(e){
+    const t = e.target.closest && e.target.closest('[data-act]');
+    if(!t) return;
+    const act = t.getAttribute('data-act');
+
+    if(act === 'join' && !t.disabled){
+      cycleJoined(Number(t.dataset.m), Number(t.dataset.p));
+
+    } else if(act === 'add-member'){
+      const name = prompt('Tên người mới:');
+      if(name && name.trim()) addMember(name.trim());
+
+    } else if(act === 'rename-member'){
+      const cur = t.textContent;
+      const name = prompt('Đổi tên:', cur);
+      if(name && name.trim() && name.trim() !== cur) renameMember(Number(t.dataset.m), name.trim());
+
+    } else if(act === 'del-member'){
+      const row = t.closest('tr');
+      const nm = row ? row.querySelector('.sticky-col').textContent.replace('×', '').trim() : '';
+      if(confirm('Xoá "' + nm + '" khỏi tất cả các bảng? Không khôi phục lại được.'))
+        deleteMember(Number(t.dataset.m));
+
+    } else if(act === 'add-period'){
+      const label = prompt('Tên đợt mới (vd "Đợt 6" hoặc "Buổi tới"):');
+      if(!label || !label.trim()) return;
+      const date = prompt('Ngày (dd/mm/yyyy) — để trống nếu chưa chốt:');
+      addPeriod(label.trim(), parseDate(date));
+
+    } else if(act === 'edit-period'){
+      editPeriod(Number(t.dataset.p));
+    }
+  });
+}
+
+function parseDate(s){
+  if(!s || !s.trim()) return null;
+  const m = s.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(!m) return null;
+  return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+}
+
+function editPeriod(pid){
+  const p = getPeriods().filter(function(x){ return x.id === pid; })[0];
+  if(!p) return;
+  const label = prompt('Tên đợt (để trống rồi OK để XOÁ đợt này):', p.label || '');
+  if(label === null) return;
+  if(!label.trim()){
+    if(confirm('Xoá đợt "' + (p.label || '') + '" cùng toàn bộ số liệu của đợt đó? Không khôi phục lại được.'))
+      deletePeriod(pid);
+    return;
   }
+  const cur = p.event_date ? fmtDate(p.event_date) : '';
+  const date = prompt('Ngày (dd/mm/yyyy) — để trống nếu chưa chốt:', cur);
+  if(date === null) return;
+  updatePeriod(pid, { label: label.trim(), event_date: parseDate(date) });
 }

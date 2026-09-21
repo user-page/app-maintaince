@@ -28,6 +28,13 @@ export function groupPill(v){
   return esc(v||'—');
 }
 
+// '2026-05-16' (kiểu Postgres) -> '16/05/2026'
+export function fmtDate(iso){
+  if(!iso) return '';
+  const m = String(iso).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? (m[3] + '/' + m[2] + '/' + m[1]) : String(iso);
+}
+
 export function esc(s){
   return String(s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];

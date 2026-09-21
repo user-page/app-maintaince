@@ -10,19 +10,19 @@ css/
   style.css           toàn bộ giao diện (sáng/tối, responsive)
 js/
   config.js           hằng số: URL/key Supabase (không chứa email hay username thật)
-  utils.js            hàm dùng chung: định dạng số, escape HTML, dựng phần tử, bảng sắp xếp được
-  dataStore.js         nơi giữ trạng thái dữ liệu (tĩnh + đang chỉnh sửa) và logic ghi lên Supabase
-  auth.js               đăng nhập bằng username, badge trạng thái, realtime — module duy nhất "biết" Supabase
+  utils.js            hàm dùng chung: định dạng số/ngày, escape HTML, dựng phần tử
+  dataStore.js         NGUỒN SỰ THẬT: giữ dữ liệu, tính mọi con số dẫn xuất, và toàn bộ lệnh thêm/sửa/xoá
+  auth.js               đăng nhập bằng username, badge trạng thái — module duy nhất "biết" Supabase
   charts.js              vẽ biểu đồ cột Thu/Chi bằng SVG
-  main.js                 điểm khởi động: tải dữ liệu, dựng tab/panel, gắn sự kiện
+  main.js                 điểm khởi động: dựng tab/panel, dải chỉ số
   views/
-    overview.js           tab Tổng quan
-    collection.js         tab Thu theo đợt (bảng Đóng / Tham gia)
-    expenses.js           tab Chi tiêu
-    summary.js            tab Đóng góp
-    attendees.js          tab Điểm danh
+    overview.js           tab Tổng quan (chỉ xem, tự tính)
+    collection.js         tab Thu theo đợt — bảng chính, nhập liệu ở đây
+    expenses.js           tab Chi tiêu (thêm/sửa/xoá khoản chi)
+    summary.js            tab Đóng góp (chỉ xem, tự tính)
+    attendees.js          tab Điểm danh (cùng dữ liệu với cột Tham gia)
 data/
-  fund-data.json       dữ liệu gốc lấy từ 5 sheet trong file Excel
+  snapshot.json        bản chụp tĩnh để xem được khi chưa/không kết nối Supabase
 ```
 
 Các view chỉ gọi hàm trong `dataStore.js` và tự vẽ lại khi có thay đổi — không tự gọi Supabase, nên có thể sửa giao diện từng tab mà không đụng tới phần đăng nhập/ghi dữ liệu, và ngược lại.
@@ -54,14 +54,43 @@ Sau đó: **Settings → Pages** trên GitHub → Source chọn `main` / `(root)
 
 **Bước bắt buộc để nút đăng nhập hoạt động:** vào Supabase Dashboard (project đang dùng) → Authentication → URL Configuration → thêm đúng link GitHub Pages ở trên vào mục **Redirect URLs** → Save.
 
-## Dữ liệu / backend
+## Dữ liệu / backend — một nguồn sự thật duy nhất
 
-Ba bảng trên Supabase:
-- `qdt_fund_collection` (slug, periods) — trạng thái Đóng/Tham gia theo từng đợt
-- `qdt_attendees` (slug, sessions) — trạng thái điểm danh theo từng buổi
-- `qdt_meta` (id, probed_at) — không chứa dữ liệu thật, chỉ dùng để "thăm dò" xem phiên đăng nhập hiện tại có quyền ghi hay không
+Bốn bảng trên Supabase:
 
-Ai cũng đọc được (public), chỉ chủ trang ghi được (Row Level Security, không phụ thuộc vào việc giấu key trong code — anon key trong `config.js` vốn được thiết kế để lộ ra client, giống publishable key của Stripe).
+| Bảng | Nội dung |
+|---|---|
+| `qdt_members` | danh sách người (id, name, sort_order) |
+| `qdt_periods` | các đợt thu / buổi (id, label, event_date, sort_order) |
+| `qdt_contributions` | mỗi ô: người X ở đợt Y đóng bao nhiêu (`amount`) và có đi không (`joined` = o/x) |
+| `qdt_expenses` | từng khoản chi (ngày, nhóm, nội dung, số tiền âm) |
+
+Thêm `qdt_meta` — không chứa dữ liệu thật, chỉ dùng để "thăm dò" xem phiên đăng nhập hiện tại có quyền ghi hay không.
+
+**Không có số nào được ghi cứng.** Mọi con số trên trang đều tính ra từ 4 bảng trên:
+
+- Đóng góp của một người = cộng `amount` của người đó
+- Tổng thu = cộng toàn bộ `amount` &nbsp;·&nbsp; Tổng chi = cộng `qdt_expenses.amount`
+- Chênh lệch = tổng thu + tổng chi
+- Số buổi tham gia = đếm ô `joined = 'o'` trong các đợt đã có ngày
+- Tab Điểm danh = chính cột `joined` đó, không phải bảng riêng
+
+Nhờ vậy thêm/sửa/xoá ở bất kỳ tab nào thì tất cả các tab khác tự khớp theo — không còn khả năng hai bảng nói hai số khác nhau.
+
+Ai cũng đọc được (public), chỉ chủ trang thêm/sửa/xoá được (Row Level Security, không phụ thuộc vào việc giấu key trong code — anon key trong `config.js` vốn được thiết kế để lộ ra client, giống publishable key của Stripe).
+
+`data/snapshot.json` là bản chụp tĩnh kèm theo trang: nạp trước để trang hiện ra ngay và vẫn xem được khi mất mạng, sau đó bị dữ liệu thật từ Supabase ghi đè.
+
+## Sửa dữ liệu ngay trên trang
+
+Sau khi đăng nhập:
+
+- **Thu theo đợt** — gõ thẳng số tiền vào ô, bấm ô Tham gia để xoay o → x → trống. `+ Thêm người`, `+ Thêm đợt`; bấm `×` cuối tên để xoá người, bấm `⋯` trên đầu cột để đổi tên/ngày đợt hoặc xoá đợt (để trống tên rồi OK là xoá).
+- **Chi tiêu** — `+ Thêm khoản chi`, sửa trực tiếp từng ô, `×` để xoá.
+- **Điểm danh** — bấm o/x, cùng dữ liệu với cột Tham gia.
+- **Đóng góp** và **Tổng quan** — chỉ xem, tự tính.
+
+Xoá một người sẽ xoá luôn mọi ô đóng góp của người đó (khoá ngoại `on delete cascade`); xoá một đợt cũng vậy.
 
 ## Đăng nhập (không lộ email thật lên GitHub)
 
