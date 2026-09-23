@@ -3,7 +3,7 @@
 import { el, fmt } from './utils.js';
 import {
   loadFallback, getMembers, getPeriods, getExpenses, pastPeriods,
-  totalThu, totalChi, netTotal, onChange
+  totalThu, totalChi, netTotal, onChange, hasPending
 } from './dataStore.js';
 import { initAuth } from './auth.js';
 import { buildOverview } from './views/overview.js';
@@ -82,6 +82,11 @@ async function boot(){
 
   const g = document.getElementById('genDate');
   if(g) g.textContent = 'Cập nhật ' + new Date().toLocaleDateString('vi-VN');
+
+  // nhắc trước khi đóng tab nếu còn thứ gõ dở chưa bấm Lưu
+  window.addEventListener('beforeunload', function(e){
+    if(hasPending()){ e.preventDefault(); e.returnValue = ''; }
+  });
 
   initAuth();
 }

@@ -1,12 +1,13 @@
 // Tab "Thu theo đợt" — bảng chính, cũng là nơi nhập liệu.
 // Mỗi ô có 2 phần: số tiền đóng (gõ được) và trạng thái tham gia (bấm o/x).
 // Thêm/xoá được cả người lẫn đợt. Mọi tab khác đọc lại cùng dữ liệu này nên luôn khớp.
-import { el, esc, fmt, amountSpan, fmtDate } from '../utils.js';
+import { el, esc, fmt, amountSpan, fmtDate, keepFocus } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
   memberTotal, periodTotal, periodJoinCount,
   totalThu, totalChi, netTotal,
-  setCell, cycleJoined, addMember, renameMember, deleteMember,
+  stageCell, isCellDirty, pendingCount, hasPending, saveAll, discardChanges,
+  cycleJoined, addMember, renameMember, deleteMember,
   addPeriod, updatePeriod, deletePeriod, onChange
 } from '../dataStore.js';
 
@@ -24,7 +25,9 @@ function amountCell(v, mid, pid){
   if(!getCanEdit()){
     return '<span class="amt-view">' + (v === null ? '—' : fmt(v)) + '</span>';
   }
-  return '<input class="amt-in" type="number" inputmode="decimal" step="1" data-act="amount" data-m="' + mid +
+  // type="text" + inputmode="decimal": không có nút tăng/giảm, nhưng điện thoại vẫn hiện bàn phím số
+  const dirty = isCellDirty(mid, pid) ? ' dirty' : '';
+  return '<input class="amt-in' + dirty + '" type="text" inputmode="decimal" autocomplete="off" data-m="' + mid +
     '" data-p="' + pid + '" value="' + (v === null ? '' : v) + '" placeholder="—">';
 }
 
@@ -34,7 +37,7 @@ export function buildCollection(mount){
   const card = el('div', { class: 'card' });
   card.appendChild(el('h2', {}, 'Bảng thu theo đợt'));
   card.appendChild(el('div', { class: 'desc' },
-    'Nhập số tiền mỗi người đóng và bấm ô Tham gia (o → x → trống). ' +
+    'Gõ số tiền vào ô rồi bấm <strong>Lưu</strong> — ô chưa lưu có viền vàng. Ô Tham gia (o → x → trống) lưu ngay khi bấm. ' +
     'Mọi con số ở các tab khác — Đóng góp, Tổng thu/chi/chênh lệch, số buổi tham gia — đều tính ra từ bảng này.'));
   card.appendChild(el('div', { id: 'fcEditNote', class: 'edit-note' }, 'Đang kết nối để bật chỉnh sửa…'));
 
@@ -54,17 +57,24 @@ export function buildCollection(mount){
 }
 
 function render(){
-  renderToolbar();
-  renderTable();
-  renderGrandTotals();
+  keepFocus(host, function(){
+    renderToolbar();
+    renderTable();
+    renderGrandTotals();
+  });
 }
 
 function renderToolbar(){
   if(!toolbarHost) return;
-  toolbarHost.innerHTML = getCanEdit()
-    ? '<button type="button" class="chip" data-act="add-member">+ Thêm người</button>' +
-      '<button type="button" class="chip" data-act="add-period">+ Thêm đợt</button>'
-    : '';
+  if(!getCanEdit()){ toolbarHost.innerHTML = ''; return; }
+  const n = pendingCount();
+  toolbarHost.innerHTML =
+    '<button type="button" class="chip" data-act="add-member">+ Thêm người</button>' +
+    '<button type="button" class="chip" data-act="add-period">+ Thêm đợt</button>' +
+    '<span class="tb-gap"></span>' +
+    '<button type="button" class="chip save" data-act="save"' + (n ? '' : ' disabled') + '>' +
+      (n ? '💾 Lưu ' + n + ' thay đổi' : '💾 Đã lưu') + '</button>' +
+    (n ? '<button type="button" class="chip" data-act="discard">Huỷ thay đổi</button>' : '');
 }
 
 function renderTable(){
@@ -131,15 +141,18 @@ function renderGrandTotals(){
 }
 
 function wireEvents(){
-  // số tiền: ghi khi rời ô hoặc bấm Enter
+  // số tiền: chỉ ghi nhận vào bộ nhớ khi rời ô / bấm Enter — lên server khi bấm Lưu
   host.addEventListener('change', function(e){
     const inp = e.target.closest && e.target.closest('input.amt-in');
     if(!inp) return;
-    const raw = inp.value.trim();
-    setCell(Number(inp.dataset.m), Number(inp.dataset.p), { amount: raw === '' ? null : Number(raw) });
+    const raw = inp.value.replace(/[^\d.\-]/g, '').trim();
+    stageCell(Number(inp.dataset.m), Number(inp.dataset.p),
+      { amount: raw === '' ? null : Number(raw) });
   });
   host.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' && e.target.closest && e.target.closest('input.amt-in')) e.target.blur();
+    const inp = e.target.closest && e.target.closest('input.amt-in');
+    if(!inp) return;
+    if(e.key === 'Enter'){ e.preventDefault(); inp.blur(); }
   });
 
   host.addEventListener('click', function(e){
@@ -149,6 +162,13 @@ function wireEvents(){
 
     if(act === 'join' && !t.disabled){
       cycleJoined(Number(t.dataset.m), Number(t.dataset.p));
+
+    } else if(act === 'save'){
+      saveAll();
+
+    } else if(act === 'discard'){
+      if(confirm('Bỏ ' + pendingCount() + ' thay đổi chưa lưu và lấy lại số liệu trên máy chủ?'))
+        discardChanges();
 
     } else if(act === 'add-member'){
       const name = prompt('Tên người mới:');

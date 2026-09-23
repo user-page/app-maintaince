@@ -125,14 +125,92 @@ export function loadFallback(snap){
   absorb(snap.members, snap.periods, snap.contributions, snap.expenses);
 }
 
+// Không nạp đè khi đang có thay đổi chưa lưu — nếu không thì thứ vừa gõ bị mất trắng.
+function reloadIfClean(){ if(!hasPending()) loadAll(); }
+
 export function subscribeRealtime(){
   if(!sb) return;
   sb.channel('qdt-all')
-    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_members' }, loadAll)
-    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_periods' }, loadAll)
-    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_contributions' }, loadAll)
-    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_expenses' }, loadAll)
+    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_members' }, reloadIfClean)
+    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_periods' }, reloadIfClean)
+    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_contributions' }, reloadIfClean)
+    .on('postgres_changes', { event:'*', schema:'public', table:'qdt_expenses' }, reloadIfClean)
     .subscribe();
+}
+
+// ---------- thay đổi chờ lưu ----------
+// Những gì GÕ bằng bàn phím (số tiền, ngày, nội dung khoản chi) chỉ được giữ tạm ở đây và
+// chỉ ghi lên server khi bấm nút Lưu. Ngược lại, bấm ô o/x thì lưu ngay vì chỉ một cú chạm.
+const dirtyCells = {};      // "mid:pid" -> true
+const dirtyExpenses = {};   // id -> true
+
+export function isCellDirty(mid, pid){ return !!dirtyCells[key(mid, pid)]; }
+export function isExpenseDirty(id){ return !!dirtyExpenses[id]; }
+export function pendingCount(){
+  return Object.keys(dirtyCells).length + Object.keys(dirtyExpenses).length;
+}
+export function hasPending(){ return pendingCount() > 0; }
+
+// Gõ số tiền vào một ô — chỉ đổi trong bộ nhớ, chưa ghi lên server.
+export function stageCell(mid, pid, patch){
+  const cur = cellFor(mid, pid);
+  cells[key(mid, pid)] = {
+    amount: patch.hasOwnProperty('amount') ? patch.amount : cur.amount,
+    joined: patch.hasOwnProperty('joined') ? patch.joined : cur.joined
+  };
+  dirtyCells[key(mid, pid)] = true;
+  emit();
+}
+
+export function stageExpense(id, patch){
+  const row = expenses.filter(function(e){ return e.id === id; })[0];
+  if(!row) return;
+  Object.assign(row, patch);
+  dirtyExpenses[id] = true;
+  emit();
+}
+
+export function saveAll(){
+  if(!sb || !canEdit || !hasPending()) return Promise.resolve(false);
+  const cellKeys = Object.keys(dirtyCells);
+  const expIds = Object.keys(dirtyExpenses);
+
+  const rows = cellKeys.map(function(k){
+    const p = k.split(':');
+    const c = cells[k] || { amount: null, joined: null };
+    return { member_id: Number(p[0]), period_id: Number(p[1]),
+             amount: c.amount, joined: c.joined, updated_at: new Date().toISOString() };
+  });
+
+  return run(function(){
+    const jobs = [];
+    if(rows.length) jobs.push(sb.from('qdt_contributions').upsert(rows, { onConflict: 'member_id,period_id' }));
+    expIds.forEach(function(id){
+      const row = expenses.filter(function(e){ return e.id === Number(id); })[0];
+      if(!row) return;
+      jobs.push(sb.from('qdt_expenses').update({
+        spend_date: row.spend_date || null, category: row.category || '',
+        description: row.description || '', amount: Number(row.amount) || 0
+      }).eq('id', Number(id)));
+    });
+    return Promise.all(jobs).then(function(res){
+      const bad = res.filter(function(x){ return x && x.error; })[0];
+      return bad || { error: null };
+    });
+  }).then(function(ok){
+    if(ok){
+      cellKeys.forEach(function(k){ delete dirtyCells[k]; });
+      expIds.forEach(function(id){ delete dirtyExpenses[id]; });
+      emit();
+    }
+    return ok;
+  });
+}
+
+export function discardChanges(){
+  Object.keys(dirtyCells).forEach(function(k){ delete dirtyCells[k]; });
+  Object.keys(dirtyExpenses).forEach(function(k){ delete dirtyExpenses[k]; });
+  return loadAll();
 }
 
 // ---------- ghi ----------
@@ -165,6 +243,10 @@ export function setCell(mid, pid, patch){
       .upsert({ member_id: mid, period_id: pid, amount: next.amount, joined: next.joined,
                 updated_at: new Date().toISOString() },
               { onConflict: 'member_id,period_id' });
+  }).then(function(ok){
+    // lần ghi này gửi cả số tiền đang chờ của chính ô đó, nên ô đó hết "chưa lưu"
+    if(ok){ delete dirtyCells[key(mid, pid)]; emit(); }
+    return ok;
   });
 }
 

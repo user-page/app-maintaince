@@ -28,6 +28,29 @@ export function groupPill(v){
   return esc(v||'—');
 }
 
+// Vẽ lại bảng sẽ phá mất ô đang gõ dở. Hàm này nhớ ô đang được chọn (kèm vị trí con trỏ)
+// trước khi vẽ lại rồi trả con trỏ về đúng chỗ cũ — cần thiết khi bấm Tab sang ô kế tiếp.
+export function keepFocus(root, fn){
+  const a = document.activeElement;
+  const keep = (a && a.tagName === 'INPUT' && root.contains(a)) ? {
+    m: a.getAttribute('data-m'), p: a.getAttribute('data-p'),
+    exp: a.getAttribute('data-exp'), field: a.getAttribute('data-field'),
+    start: a.selectionStart, end: a.selectionEnd
+  } : null;
+
+  fn();
+
+  if(!keep) return;
+  let sel = null;
+  if(keep.m !== null && keep.p !== null) sel = 'input[data-m="'+keep.m+'"][data-p="'+keep.p+'"]';
+  else if(keep.exp !== null) sel = 'input[data-exp="'+keep.exp+'"][data-field="'+keep.field+'"]';
+  if(!sel) return;
+  const next = root.querySelector(sel);
+  if(!next) return;
+  next.focus();
+  try{ next.setSelectionRange(keep.start, keep.end); }catch(e){ /* date input không cho */ }
+}
+
 // '2026-05-16' (kiểu Postgres) -> '16/05/2026'
 export function fmtDate(iso){
   if(!iso) return '';

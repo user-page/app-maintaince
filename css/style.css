@@ -176,6 +176,22 @@
     border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink);
   }
   input.amt-in:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+  /* bỏ hẳn nút tăng/giảm của ô số, kể cả khi trình duyệt tự thêm */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
+
+  /* ô đã gõ nhưng chưa bấm Lưu */
+  input.dirty{ border-color:var(--warn); background:var(--warn-soft); }
+
+  /* nút Lưu trên thanh công cụ */
+  .tb-gap{ flex:1 1 auto; }
+  .chip.save{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .chip.save:disabled{
+    background:var(--surface-2); color:var(--ink-3); border-color:var(--line); cursor:default;
+  }
+  .chip.save:not(:disabled):hover{ filter:brightness(1.08); }
   .amt-view{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
 
   td input[type="text"], td input[type="date"]{
