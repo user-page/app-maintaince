@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// ============================================================================
+//  DÁN TOÀN BỘ FILE NÀY VÀO: Firebase Console → Firestore Database → tab Rules
+//  → thay hết nội dung cũ → bấm Publish.
+//
+//  ĐỔI OWNER_UID bên dưới thành UID tài khoản của bạn.
+//  Lấy ở đâu: Console → Authentication → tab Users → cột "User UID" (bấm để copy).
+//
+//  UID để lộ cũng không sao — nó không phải mật khẩu, chỉ là mã định danh. Muốn ghi
+//  được vẫn phải đăng nhập đúng mật khẩu.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null
+          && request.auth.uid == 'DÁN_OWNER_UID_VÀO_ĐÂY';
+    }
+
+    // Ai cũng xem được trang; chỉ chủ trang mới thêm/sửa/xoá.
+    match /members/{id}       { allow read: if true; allow write: if isOwner(); }
+    match /periods/{id}       { allow read: if true; allow write: if isOwner(); }
+    match /contributions/{id} { allow read: if true; allow write: if isOwner(); }
+    match /expenses/{id}      { allow read: if true; allow write: if isOwner(); }
+
+    // Mọi thứ khác: cấm hết.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

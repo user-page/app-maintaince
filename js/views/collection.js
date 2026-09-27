@@ -146,7 +146,7 @@ function wireEvents(){
     const inp = e.target.closest && e.target.closest('input.amt-in');
     if(!inp) return;
     const raw = inp.value.replace(/[^\d.\-]/g, '').trim();
-    stageCell(Number(inp.dataset.m), Number(inp.dataset.p),
+    stageCell(inp.dataset.m, inp.dataset.p,
       { amount: raw === '' ? null : Number(raw) });
   });
   host.addEventListener('keydown', function(e){
@@ -161,7 +161,7 @@ function wireEvents(){
     const act = t.getAttribute('data-act');
 
     if(act === 'join' && !t.disabled){
-      cycleJoined(Number(t.dataset.m), Number(t.dataset.p));
+      cycleJoined(t.dataset.m, t.dataset.p);
 
     } else if(act === 'save'){
       saveAll();
@@ -177,13 +177,13 @@ function wireEvents(){
     } else if(act === 'rename-member'){
       const cur = t.textContent;
       const name = prompt('Đổi tên:', cur);
-      if(name && name.trim() && name.trim() !== cur) renameMember(Number(t.dataset.m), name.trim());
+      if(name && name.trim() && name.trim() !== cur) renameMember(t.dataset.m, name.trim());
 
     } else if(act === 'del-member'){
       const row = t.closest('tr');
       const nm = row ? row.querySelector('.sticky-col').textContent.replace('×', '').trim() : '';
       if(confirm('Xoá "' + nm + '" khỏi tất cả các bảng? Không khôi phục lại được.'))
-        deleteMember(Number(t.dataset.m));
+        deleteMember(t.dataset.m);
 
     } else if(act === 'add-period'){
       const label = prompt('Tên đợt mới (vd "Đợt 6" hoặc "Buổi tới"):');
@@ -192,7 +192,7 @@ function wireEvents(){
       addPeriod(label.trim(), parseDate(date));
 
     } else if(act === 'edit-period'){
-      editPeriod(Number(t.dataset.p));
+      editPeriod(t.dataset.p);
     }
   });
 }

@@ -1,9 +1,26 @@
-// Cấu hình Supabase (backend lưu dữ liệu chỉnh sửa trực tiếp: ai đóng tiền / ai tham gia).
-// Anon/publishable key an toàn để lộ ra client — quyền ghi được chặn bằng Row Level Security
-// ở phía Supabase, không phải bằng cách giấu key này.
+// ============================================================================
+//  CẤU HÌNH FIREBASE — dán thông tin dự án của bạn vào đây
+// ============================================================================
+//  Lấy ở đâu: Firebase Console → bánh răng ⚙ Project settings → mục "Your apps"
+//  → chọn app Web (</>) → phần "SDK setup and configuration" → chọn "Config".
 //
-// Lưu ý: email của tài khoản chủ trang KHÔNG được lưu ở đây (hay bất kỳ đâu trong code này) để
-// tránh lộ trên GitHub — nó chỉ tồn tại trong policy phía Supabase (auth.js xác định quyền
-// chỉnh sửa bằng cách "thăm dò" một request thật, xem server có cho ghi hay không).
-export const SUPABASE_URL = 'https://prvcgymdhgxfkyzqwgrm.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBydmNneW1kaGd4Zmt5enF3Z3JtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3NTA5MTUsImV4cCI6MjEwMzMyNjkxNX0.iWgkqXKQfmqMC5K9OBQvArS-ImWCxwtcam452LhW1E4';
+//  Các giá trị này AN TOÀN khi để lộ trên GitHub. Chúng chỉ nói "database nào",
+//  không phải mật khẩu. Quyền ghi được chặn bằng Firestore Security Rules ở phía
+//  Google (xem file firestore.rules) — không phải bằng cách giấu mấy dòng này.
+// ============================================================================
+export const FIREBASE_CONFIG = {
+  apiKey: 'DÁN_API_KEY_VÀO_ĐÂY',
+  authDomain: 'TEN-DU-AN.firebaseapp.com',
+  projectId: 'TEN-DU-AN',
+  storageBucket: 'TEN-DU-AN.firebasestorage.app',
+  messagingSenderId: 'DÁN_SENDER_ID',
+  appId: 'DÁN_APP_ID'
+};
+
+// Phiên bản thư viện Firebase nạp từ CDN của Google.
+export const FIREBASE_VERSION = '12.19.0';
+
+// Đăng nhập: bạn chỉ gõ username, trang tự ghép thành "<username>@<domain>" để đưa cho
+// Firebase Auth. Đây là email GIẢ, không có thật, chỉ để Firebase có cái định danh —
+// nên email thật của bạn không nằm ở đâu trong repo này. Bí mật thật là MẬT KHẨU.
+export const LOGIN_EMAIL_DOMAIN = 'quy-duy-tri.local';

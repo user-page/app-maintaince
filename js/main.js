@@ -1,4 +1,4 @@
-// Điểm khởi động: dựng khung tabs/panels, nạp dữ liệu (Supabase, hoặc bản chụp tĩnh nếu
+// Điểm khởi động: dựng khung tabs/panels, nạp dữ liệu (Firestore, hoặc bản chụp tĩnh nếu
 // không kết nối được), rồi bật phần đăng nhập/chỉnh sửa.
 import { el, fmt } from './utils.js';
 import {
@@ -70,7 +70,7 @@ function buildTabsAndPanels(){
 
 async function boot(){
   // Nạp bản chụp tĩnh trước để trang hiện ra ngay và vẫn xem được kể cả khi mất mạng;
-  // auth.js sẽ nạp đè dữ liệu thật từ Supabase ngay sau đó.
+  // auth.js sẽ nạp đè dữ liệu thật từ Firestore ngay sau đó.
   try{
     const res = await fetch('data/snapshot.json');
     loadFallback(await res.json());

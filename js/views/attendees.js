@@ -20,7 +20,7 @@ export function buildAttendees(mount){
 
   mount.addEventListener('click', function(e){
     const b = e.target.closest && e.target.closest('button.toggle-cell');
-    if(b && !b.disabled) cycleJoined(Number(b.dataset.m), Number(b.dataset.p));
+    if(b && !b.disabled) cycleJoined(b.dataset.m, b.dataset.p);
   });
 
   onChange(render);

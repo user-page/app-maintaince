@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nạp dữ liệu vào Firestore — chạy một lần</title>
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <span class="eyebrow">Công cụ · chạy một lần rồi thôi</span>
+      <h1>Nạp dữ liệu vào Firestore</h1>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2>Việc này làm gì</h2>
+    <div class="desc">
+      Đọc <code>data/snapshot.json</code> (toàn bộ số liệu hiện có) và ghi vào Firestore của bạn.
+      <strong>Chỉ chạy một lần</strong>, sau khi đã tạo dự án Firebase, bật Firestore, tạo tài khoản
+      và dán Security Rules. Chạy lại lần nữa sẽ ghi đè bằng dữ liệu trong file snapshot —
+      nên sau khi nạp xong thì đừng chạy nữa.
+    </div>
+
+    <div class="login-box" style="position:static;width:min(340px,100%);box-shadow:none;margin-bottom:14px">
+      <div class="msg">Đăng nhập bằng tài khoản chủ trang để có quyền ghi.</div>
+      <input type="text" id="u" placeholder="username" autocomplete="username">
+      <input type="password" id="p" placeholder="mật khẩu" autocomplete="current-password">
+      <div class="row">
+        <button type="button" id="go">Đăng nhập &amp; nạp dữ liệu</button>
+      </div>
+    </div>
+
+    <div id="log" class="bar-note" style="white-space:pre-wrap;font-size:12.5px;line-height:1.7"></div>
+  </div>
+</div>
+
+<script type="module">
+import { FIREBASE_CONFIG, FIREBASE_VERSION, LOGIN_EMAIL_DOMAIN } from '../js/config.js';
+
+const BASE = 'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/';
+const logEl = document.getElementById('log');
+const say = (t) => { logEl.textContent += t + '\n'; };
+
+document.getElementById('go').addEventListener('click', async () => {
+  const btn = document.getElementById('go');
+  btn.disabled = true;
+  logEl.textContent = '';
+  try{
+    say('Đang nạp thư viện Firebase…');
+    const [appMod, fs, fbAuth] = await Promise.all([
+      import(BASE + 'firebase-app.js'),
+      import(BASE + 'firebase-firestore.js'),
+      import(BASE + 'firebase-auth.js')
+    ]);
+    const app = appMod.initializeApp(FIREBASE_CONFIG);
+    const db = fs.getFirestore(app);
+    const auth = fbAuth.getAuth(app);
+
+    const user = document.getElementById('u').value.trim().toLowerCase();
+    const pass = document.getElementById('p').value;
+    say('Đang đăng nhập…');
+    await fbAuth.signInWithEmailAndPassword(auth, user + '@' + LOGIN_EMAIL_DOMAIN, pass);
+    say('Đăng nhập OK.');
+
+    say('Đang đọc data/snapshot.json…');
+    const snap = await (await fetch('../data/snapshot.json')).json();
+    say('  ' + snap.members.length + ' người, ' + snap.periods.length + ' đợt, ' +
+        snap.contributions.length + ' ô, ' + snap.expenses.length + ' khoản chi.');
+
+    // snapshot.json đã dùng sẵn id dạng chuỗi (m1, p1, e1…) nên ghi thẳng, giữ nguyên
+    // để các ô đóng góp khớp đúng người/đợt.
+    let batch = fs.writeBatch(db), n = 0, total = 0;
+    const flush = async () => { if(n){ await batch.commit(); total += n; batch = fs.writeBatch(db); n = 0; } };
+    const put = async (coll, id, data) => {
+      batch.set(fs.doc(db, coll, id), data);
+      if(++n >= 400) await flush();
+    };
+
+    say('Đang ghi…');
+    for(const m of snap.members) await put('members', m.id, { name: m.name, sort_order: m.sort_order });
+    for(const p of snap.periods) await put('periods', p.id, { label: p.label, event_date: p.event_date, sort_order: p.sort_order });
+    for(const c of snap.contributions)
+      await put('contributions', c.member_id + '__' + c.period_id,
+        { member_id: c.member_id, period_id: c.period_id, amount: c.amount, joined: c.joined });
+    for(const e of snap.expenses)
+      await put('expenses', e.id,
+        { spend_date: e.spend_date, category: e.category, description: e.description,
+          amount: e.amount, sort_order: e.sort_order });
+    await flush();
+
+    say('XONG — đã ghi ' + total + ' bản ghi.');
+    say('');
+    say('Giờ mở trang chính (index.html) là thấy dữ liệu. Có thể xoá thư mục tools/ đi.');
+  }catch(err){
+    say('LỖI: ' + (err && err.message ? err.message : err));
+    if(String(err).indexOf('permission') > -1)
+      say('→ Kiểm tra lại Security Rules đã dán đúng OWNER_UID chưa.');
+    if(String(err).indexOf('credential') > -1 || String(err).indexOf('password') > -1)
+      say('→ Sai username hoặc mật khẩu.');
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

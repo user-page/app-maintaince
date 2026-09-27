@@ -25,7 +25,7 @@ export function buildExpenses(mount){
   mount.addEventListener('change', function(e){
     const inp = e.target.closest && e.target.closest('[data-exp]');
     if(!inp) return;
-    const id = Number(inp.dataset.exp), f = inp.dataset.field;
+    const id = inp.dataset.exp, f = inp.dataset.field;
     const patch = {};
     if(f === 'amount'){
       const raw = inp.value.replace(/[^\d.\-]/g, '').trim();
@@ -50,7 +50,7 @@ export function buildExpenses(mount){
       const row = t.closest('tr');
       const what = row ? (row.querySelector('[data-field="description"]') || {}).value || '' : '';
       if(confirm('Xoá khoản chi "' + what + '"? Không khôi phục lại được.'))
-        deleteExpense(Number(t.dataset.exp));
+        deleteExpense(t.dataset.exp);
     } else if(act === 'save'){
       saveAll();
     } else if(act === 'discard'){
