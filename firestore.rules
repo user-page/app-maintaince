@@ -15,7 +15,7 @@ service cloud.firestore {
 
     function isOwner() {
       return request.auth != null
-          && request.auth.uid == '5r0mM4uw1ANp2SvunLNtyszUD8x2';
+          && request.auth.uid == 'VFbUHGDKcRNT51upThdbzD7Ltfh1';
     }
 
     // Ai cũng xem được trang; chỉ chủ trang mới thêm/sửa/xoá.
