@@ -144,12 +144,18 @@ Sau khi đăng nhập:
 
 ## Đăng nhập & bảo mật
 
-Bạn gõ **username + mật khẩu**. Trang ghép thành `<username>@quy-duy-tri.local` rồi đưa cho
-Firebase Auth — email thật của bạn không nằm ở đâu trong repo này, và mật khẩu cũng không
-(chỉ bạn gõ vào).
+Ô đăng nhập nhận cả hai kiểu. Gõ trống không (`abc`) thì trang tự ghép thành
+`abc@quy-duy-tri.local`; gõ cả địa chỉ (`abc@mail.com`) thì dùng nguyên như vậy. Kiểu thứ hai
+cho phép dùng địa chỉ email thật để đăng nhập mà **địa chỉ đó không phải nằm trong file nào
+của repo** — bạn gõ tay lúc đăng nhập thôi. Mật khẩu thì không bao giờ nằm trong code.
 
 Quyền ghi do `firestore.rules` quyết định ở phía Google: chỉ tài khoản có đúng UID mới
 thêm/sửa/xoá được, ai cũng đọc được. Sửa code trong trình duyệt không vượt qua được luật này.
 
-Đổi mật khẩu: Firebase Console → Authentication → Users → ba chấm cuối dòng → *Reset password*
-(hoặc xoá user và tạo lại, rồi cập nhật UID mới trong `firestore.rules`).
+Đổi mật khẩu: Firebase Console → Authentication → Users → ba chấm cuối dòng → *Edit account*
+→ gõ mật khẩu mới → Save. Cũng ở đó đổi được địa chỉ email của tài khoản. Cả hai cách này
+**giữ nguyên UID**, nên không phải sửa `firestore.rules`.
+
+Đừng dùng *Reset password* khi tài khoản đang để email giả — thư sẽ gửi tới một địa chỉ không
+tồn tại. Cũng đừng xoá tài khoản rồi tạo lại: tài khoản mới có UID khác, phải sửa UID trong
+`firestore.rules` và Publish lại, không thì mất quyền ghi.

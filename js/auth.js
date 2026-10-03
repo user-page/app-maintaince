@@ -7,7 +7,7 @@
 //
 // Quyền ghi do Firestore Security Rules quyết định ở phía Google (xem firestore.rules),
 // không phải do đoạn code này — nên có sửa code trong trình duyệt cũng không ghi được.
-import { LOGIN_EMAIL_DOMAIN } from './config.js';
+import { toLoginEmail } from './config.js';
 import { initFirebase, getMods } from './firebase.js';
 import { setCanEdit, getCanEdit, loadAll, subscribeRealtime, onPermissionDenied, hasPending } from './dataStore.js';
 
@@ -57,7 +57,7 @@ function wireLoginBox(){
     const password = (passInput && passInput.value) || '';
 
     if(!username || !password){
-      if(msg){ msg.textContent = 'Nhập cả username và mật khẩu.'; msg.className = 'msg err'; }
+      if(msg){ msg.textContent = 'Nhập cả tên đăng nhập và mật khẩu.'; msg.className = 'msg err'; }
       return;
     }
     if(!m){
@@ -68,7 +68,7 @@ function wireLoginBox(){
     sendBtn.disabled = true;
     if(msg){ msg.textContent = 'Đang kiểm tra…'; msg.className = 'msg'; }
 
-    m.fbAuth.signInWithEmailAndPassword(m.auth, username + '@' + LOGIN_EMAIL_DOMAIN, password)
+    m.fbAuth.signInWithEmailAndPassword(m.auth, toLoginEmail(username), password)
       .then(function(){
         sendBtn.disabled = false;
         if(passInput) passInput.value = '';
@@ -82,7 +82,7 @@ function wireLoginBox(){
         // vừa đúng thực tế vừa đỡ giúp người dò tìm.
         const text = (code.indexOf('invalid-credential') > -1 || code.indexOf('user-not-found') > -1 ||
                       code.indexOf('wrong-password') > -1 || code.indexOf('invalid-email') > -1)
-          ? 'Username hoặc mật khẩu không đúng.'
+          ? 'Tên đăng nhập hoặc mật khẩu không đúng.'
           : (code.indexOf('too-many-requests') > -1
               ? 'Thử sai nhiều lần quá, Firebase tạm khoá. Đợi một lát rồi thử lại.'
               : 'Lỗi đăng nhập: ' + ((err && err.message) || code));

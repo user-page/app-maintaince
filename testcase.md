@@ -97,13 +97,20 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 |---|---|---|
 | E1 | Chưa đăng nhập | Badge ghi `🔒 Chỉ xem — bấm để đăng nhập`; mọi ô tiền, ô `o`/`x`, nút thêm/xoá đều **không bấm được** |
 | E2 | Đăng nhập đúng | Badge đổi thành `Đang lưu trực tiếp`, các nút mở khoá |
-| E3 | Sai mật khẩu | Báo `Username hoặc mật khẩu không đúng.` — **không** được lộ là username có tồn tại hay không |
-| E4 | Sai username | Cùng một câu báo lỗi như E3, không khác chữ nào |
+| E3 | Sai mật khẩu | Báo `Tên đăng nhập hoặc mật khẩu không đúng.` — **không** được lộ là tài khoản có tồn tại hay không |
+| E4 | Sai tên đăng nhập | Cùng một câu báo lỗi như E3, không khác chữ nào |
 | E5 | Đăng xuất | Badge về trạng thái chỉ xem, mọi nút khoá lại ngay, không cần tải lại trang |
 | E6 | Chặn mạng tới `gstatic.com` rồi mở trang | Badge ghi `Chỉ xem (mất kết nối)`, trang vẫn hiện số liệu tĩnh từ `data/snapshot.json`, không trắng trang 🤖 |
 | E7 | Đăng nhập rồi, nhưng rules chặn | Hiện thông báo lỗi rõ ràng, không im lặng nuốt lỗi |
+| E8 | Gõ **cả địa chỉ email** vào ô tên đăng nhập | Đăng nhập được — trang dùng nguyên địa chỉ đó, không ghép thêm đuôi |
+| E9 | Gõ **username trống không** (không có `@`) | Trang tự ghép đuôi `LOGIN_EMAIL_DOMAIN` trong `js/config.js` rồi mới gửi đi |
+| E10 | Gõ email lẫn chữ hoa và thừa khoảng trắng hai đầu | Vẫn đăng nhập được — trang tự cắt khoảng trắng và đổi về chữ thường |
 
-> E3 và E4 phải giống nhau **từng chữ**. Khác nhau là lộ username nào có thật.
+> E3 và E4 phải giống nhau **từng chữ**. Khác nhau là lộ tài khoản nào có thật.
+>
+> E8–E10 tồn tại để địa chỉ email đăng nhập **không phải nằm trong file nào của repo**: chủ trang
+> gõ tay lúc đăng nhập. Đừng "tiện tay" điền địa chỉ thật vào `LOGIN_EMAIL_DOMAIN` hay bất kỳ
+> file nào — repo này public.
 
 ---
 
@@ -112,7 +119,7 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | # | Kiểm tra | Cách làm | Kỳ vọng |
 |---|---|---|---|
 | F1 | Email thật không có trong repo, kể cả lịch sử | `git log --all -S'<địa chỉ email thật>' --oneline` | Không commit nào |
-| F2 | Username không có trong **mã nguồn hiện tại** | `git grep -n '<username>'` | Không kết quả |
+| F2 | Username và email đăng nhập không có trong **mã nguồn hiện tại** | `git grep -n '<username>'` | Không kết quả |
 | F3 | Không có mật khẩu, token, service-account key nào bị commit | `git grep -nE 'password\s*=\|BEGIN PRIVATE KEY\|service_account'` | Không kết quả |
 | F4 | Firestore rules còn đúng | Mở Console → Firestore → Rules | `allow write` chỉ cho đúng UID chủ trang; có dòng `match /{document=**} { allow read, write: if false; }` ở cuối |
 | F5 | Không ai tự đăng ký tài khoản được | Console → Authentication → Settings → User actions | *Enable create (sign-up)* đang **tắt** |

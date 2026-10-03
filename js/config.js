@@ -22,7 +22,16 @@ export const FIREBASE_CONFIG = {
 // Phiên bản thư viện Firebase nạp từ CDN của Google.
 export const FIREBASE_VERSION = '12.19.0';
 
-// Đăng nhập: bạn chỉ gõ username, trang tự ghép thành "<username>@<domain>" để đưa cho
-// Firebase Auth. Đây là email GIẢ, không có thật, chỉ để Firebase có cái định danh —
-// nên email thật của bạn không nằm ở đâu trong repo này. Bí mật thật là MẬT KHẨU.
+// Đuôi mặc định khi bạn chỉ gõ username trống không.
 export const LOGIN_EMAIL_DOMAIN = 'quy-duy-tri.local';
+
+// Ô đăng nhập nhận CẢ HAI kiểu gõ:
+//   - gõ trống không  ("abc")           -> ghép thành "abc@quy-duy-tri.local"
+//   - gõ cả địa chỉ   ("abc@mail.com")  -> dùng nguyên như vậy
+// Nhờ cách này, dùng địa chỉ email thật để đăng nhập vẫn được mà địa chỉ đó
+// KHÔNG phải nằm trong file nào của repo — bạn gõ tay lúc đăng nhập thôi.
+// Bí mật thật vẫn là MẬT KHẨU, không phải địa chỉ.
+export function toLoginEmail(input){
+  const s = String(input || '').trim().toLowerCase();
+  return s.indexOf('@') > -1 ? s : s + '@' + LOGIN_EMAIL_DOMAIN;
+}
