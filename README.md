@@ -50,21 +50,23 @@ chọn vùng gần (`asia-southeast1` Singapore) → chọn **Production mode** 
 bật **Email/Password** (chỉ dòng trên, không cần Email link) → Save.
 
 Sang tab *Users* → *Add user*:
-- Email: `vthang1510@quy-duy-tri.local` — email **giả**, không có thật, chỉ để Firebase có
-  định danh. Phần trước `@` chính là username bạn sẽ gõ; phần sau phải khớp `LOGIN_EMAIL_DOMAIN`
-  trong `js/config.js`.
+- Email: `<username>@quy-duy-tri.local` — email **giả**, không có thật, chỉ để Firebase có
+  định danh. Phần trước `@` chính là username bạn sẽ gõ khi đăng nhập; phần sau phải khớp
+  `LOGIN_EMAIL_DOMAIN` trong `js/config.js`.
 - Password: **tự đặt một mật khẩu mạnh** — đây mới là bí mật thật. Đừng dùng lại mật khẩu ở đâu khác.
 
 Tạo xong, copy **User UID** ở cột bên phải.
 
 **4. Lấy cấu hình web.** ⚙ *Project settings* → mục *Your apps* → biểu tượng `</>` (Web) →
 đặt nickname → Register app → copy khối `firebaseConfig` → dán các giá trị vào `js/config.js`.
+*(Bản hiện tại trong repo đã điền sẵn — chỉ phải làm lại nếu đổi sang dự án Firebase khác.)*
 
 > Mấy giá trị này an toàn khi để công khai trên GitHub. Chúng chỉ nói "database nào", không phải
 > mật khẩu. Quyền ghi do Security Rules ở phía Google quyết định.
 
-**5. Dán luật phân quyền.** Mở `firestore.rules`, thay `DÁN_OWNER_UID_VÀO_ĐÂY` bằng UID ở bước 3.
-Rồi vào *Firestore Database → tab Rules*, xoá hết nội dung cũ, dán toàn bộ file vào, bấm **Publish**.
+**5. Dán luật phân quyền.** `firestore.rules` đã điền sẵn UID chủ trang. Vào
+*Firestore Database → tab Rules*, xoá hết nội dung cũ, dán toàn bộ file vào, bấm **Publish**.
+*(Nếu đổi tài khoản chủ trang thì sửa UID trong hàm `isOwner()` rồi Publish lại.)*
 
 **6. Nạp dữ liệu.** Chạy trang ở máy (`python3 -m http.server 8000` trong thư mục này), mở
 `http://localhost:8000/tools/import.html`, đăng nhập bằng username + mật khẩu vừa tạo, bấm nút.
