@@ -60,8 +60,7 @@ export function openForm(cfg){
 
     dlg.innerHTML =
       '<form class="dlg-form" novalidate>' +
-        '<header class="dlg-head"><h3 id="' + uid + '-t">' + esc(cfg.title) + '</h3>' +
-          '<button type="button" class="dlg-x" data-role="cancel" aria-label="Đóng">×</button></header>' +
+        '<header class="dlg-head"><h3 id="' + uid + '-t">' + esc(cfg.title) + '</h3></header>' +
         '<div class="dlg-body">' + body + '</div>' +
         '<footer class="dlg-foot">' +
           (cfg.danger ? '<button type="button" class="btn danger-ghost" data-role="ask-delete">' + esc(cfg.danger.label) + '</button>' : '') +
