@@ -24,16 +24,19 @@ function renderStatStrip(){
   const strip = document.getElementById('statStrip');
   if(!strip) return;
   const net = netTotal();
+  // Chênh lệch là thứ người ta mở trang ra để xem, nên nó đứng đầu và được tô nền;
+  // năm ô còn lại là số liệu đỡ cho nó.
   const stats = [
+    { label: 'Chênh lệch', value: fmt(net), cls: net < 0 ? 'bad' : 'good', lead: true,
+      sub: (net < 0 ? 'quỹ đang âm' : 'còn trong quỹ') + ', sau ' + pastPeriods().length + ' đợt' },
     { label: 'Tổng thu',    value: fmt(totalThu()), cls: 'good' },
     { label: 'Tổng chi',    value: fmt(totalChi()), cls: 'bad' },
-    { label: 'Chênh lệch',  value: fmt(net), cls: net < 0 ? 'bad' : 'good' },
     { label: 'Thành viên',  value: getMembers().length },
     { label: 'Đợt đã diễn ra', value: pastPeriods().length, sub: 'trên ' + getPeriods().length + ' đợt' },
     { label: 'Khoản chi',   value: getExpenses().length, sub: 'dòng ghi chép' }
   ];
   strip.innerHTML = stats.map(function(s){
-    return '<div class="stat"><span class="label">' + s.label + '</span>' +
+    return '<div class="stat' + (s.lead ? ' lead' : '') + '"><span class="label">' + s.label + '</span>' +
       '<span class="value num ' + (s.cls || '') + '">' + s.value + '</span>' +
       (s.sub ? '<span class="sub">' + s.sub + '</span>' : '') + '</div>';
   }).join('');

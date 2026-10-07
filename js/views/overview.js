@@ -1,26 +1,20 @@
 // Tab "Tổng quan" — mọi con số đều tính ra từ cùng một nguồn, không có số cứng.
-import { el, fmt, esc, fmtDate } from '../utils.js';
+import { el, esc, fmtDate } from '../utils.js';
 import { buildBarChart } from '../charts.js';
 import {
-  getMembers, getPeriods, getExpenses, pastPeriods,
-  periodTotal, sessionsAttended, totalThu, totalChi, netTotal, onChange
+  getMembers, getExpenses, pastPeriods, cellFor,
+  periodTotal, sessionsAttended, onChange
 } from '../dataStore.js';
 
-let statsHost = null, chartHost = null, attendHost = null, attendDesc = null;
+let chartHost = null, attendHost = null, attendDesc = null;
 
 export function buildOverview(mount){
-  const totalsCard = el('div', { class: 'card' });
-  totalsCard.appendChild(el('h2', {}, 'Tổng thu · Tổng chi · Chênh lệch'));
-  totalsCard.appendChild(el('div', { class: 'desc' },
-    'Cộng trực tiếp từ bảng Thu theo đợt và bảng Chi tiêu.'));
-  statsHost = el('div', { class: 'mini-stats' });
-  totalsCard.appendChild(statsHost);
-  mount.appendChild(totalsCard);
-
+  // Ba con số Tổng thu / Tổng chi / Chênh lệch đã nằm trên dải chỉ số ở đầu trang,
+  // không lặp lại ở đây nữa — mỗi con số chỉ xuất hiện một lần.
   const chartCard = el('div', { class: 'card' });
   chartCard.appendChild(el('h2', {}, 'Thu / Chi theo đợt'));
   chartCard.appendChild(el('div', { class: 'desc' },
-    'Mỗi đợt thu được bao nhiêu so với chi bao nhiêu.'));
+    'Mỗi đợt thu được bao nhiêu so với chi bao nhiêu. Cũ nhất bên trái.'));
   chartCard.appendChild(el('div', { class: 'chart-legend' },
     '<span><span class="dot" style="background:var(--good)"></span>Thu</span>' +
     '<span><span class="dot" style="background:var(--bad)"></span>Chi</span>'));
@@ -29,7 +23,7 @@ export function buildOverview(mount){
   mount.appendChild(chartCard);
 
   const attendCard = el('div', { class: 'card' });
-  attendCard.appendChild(el('h2', {}, 'Số buổi tham gia'));
+  attendCard.appendChild(el('h2', {}, 'Ai đi những buổi nào'));
   attendDesc = el('div', { class: 'desc' }, '');
   attendCard.appendChild(attendDesc);
   attendHost = el('div', {});
@@ -41,18 +35,8 @@ export function buildOverview(mount){
 }
 
 function render(){
-  renderStats();
   renderChart();
   renderAttendance();
-}
-
-function renderStats(){
-  if(!statsHost) return;
-  const net = netTotal();
-  statsHost.innerHTML =
-    '<div class="stat"><span class="label">Tổng thu</span><span class="value num good">' + fmt(totalThu()) + '</span></div>' +
-    '<div class="stat"><span class="label">Tổng chi</span><span class="value num bad">' + fmt(totalChi()) + '</span></div>' +
-    '<div class="stat"><span class="label">Chênh lệch</span><span class="value num ' + (net < 0 ? 'bad' : 'good') + '">' + fmt(net) + '</span></div>';
 }
 
 function renderChart(){
@@ -76,27 +60,37 @@ function renderChart(){
 
 function renderAttendance(){
   if(!attendHost) return;
-  const members = getMembers(), nPast = pastPeriods().length;
+  const members = getMembers();
+  // cũ -> mới, cùng chiều với biểu đồ ngay phía trên
+  const ps = pastPeriods().slice().sort(function(a, b){
+    return a.event_date < b.event_date ? -1 : a.event_date > b.event_date ? 1 : 0;
+  });
+  const nPast = ps.length;
   if(attendDesc){
-    attendDesc.textContent = 'Tất cả ' + members.length + ' thành viên trên ' + nPast +
-      ' đợt đã diễn ra — tính từ cột Tham gia, cập nhật ngay khi bạn đánh dấu.';
+    attendDesc.textContent = 'Mỗi ô là một buổi, cũ nhất bên trái. Ô đậm là có mặt. ' +
+      'Lấy từ cột Tham gia ở bảng Thu theo đợt, đánh dấu ở đâu cũng hiện ở đây.';
   }
 
   const rows = members.map(function(m){
-    return { name: m.name, count: sessionsAttended(m.id) };
+    return { id: m.id, name: m.name, count: sessionsAttended(m.id) };
   }).sort(function(a, b){
     if(b.count !== a.count) return b.count - a.count;
     return a.name.localeCompare(b.name, 'vi');
   });
 
-  const list = el('div', { class: 'bar-list' });
+  const list = el('div', { class: 'attend-list' });
   rows.forEach(function(r){
-    const pct = nPast > 0 ? (r.count / nPast * 100) : 0;
-    const cls = r.count === 0 ? 'fill zero' : 'fill';
-    list.appendChild(el('div', { class: 'bar-row' },
+    let marks = '';
+    ps.forEach(function(p){
+      const v = cellFor(r.id, p.id).joined;
+      const cls = v === 'o' ? 'on' : v === 'x' ? 'off' : 'blank';
+      const what = v === 'o' ? 'có mặt' : v === 'x' ? 'vắng' : 'chưa ghi';
+      marks += '<span class="mk ' + cls + '" title="' + fmtDate(p.event_date) + ' — ' + what + '"></span>';
+    });
+    list.appendChild(el('div', { class: 'attend-row' },
       '<span class="name">' + esc(r.name) + '</span>' +
-      '<span class="track"><span class="' + cls + '" style="width:' + Math.max(pct, r.count === 0 ? 0 : 2) + '%"></span></span>' +
-      '<span class="amt num">' + r.count + '/' + nPast + ' buổi</span>'));
+      '<span class="marks" role="img" aria-label="' + r.count + ' trên ' + nPast + ' buổi">' + marks + '</span>' +
+      '<span class="amt num">' + r.count + '/' + nPast + '</span>'));
   });
   attendHost.innerHTML = '';
   attendHost.appendChild(list);

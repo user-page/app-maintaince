@@ -1,6 +1,6 @@
 // Tab "Điểm danh" — CÙNG dữ liệu với cột "Tham gia" ở tab Thu theo đợt, chỉ khác cách trình bày
 // (bỏ cột tiền cho dễ nhìn). Sửa ở đây thì tab kia đổi theo và ngược lại — không còn hai nguồn lệch nhau.
-import { el, esc, fmtDate } from '../utils.js';
+import { el, esc, fmtDate, pinHeaderRows } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
   periodJoinCount, sessionsAttended, pastPeriods, cycleJoined, onChange
@@ -45,7 +45,7 @@ function render(){
     periods.forEach(function(p){
       const v = cellFor(m.id, p.id).joined;
       const cls = v === 'o' ? 'o' : v === 'x' ? 'x' : '';
-      const label = v === 'o' ? '✓ o' : v === 'x' ? '✕ x' : '—';
+      const label = v === 'o' ? 'o' : v === 'x' ? 'x' : '·';
       const dis = getCanEdit() ? '' : ' disabled';
       const up = p.event_date ? '' : ' upcoming';
       tbody += '<td class="center' + up + '"><button type="button" class="toggle-cell ' + cls +
@@ -64,8 +64,9 @@ function render(){
 
   const table = el('table', { class: 'matrix' });
   table.innerHTML = thead + tbody + tfoot;
-  const scroll = el('div', { class: 'table-scroll' });
+  const scroll = el('div', { class: 'table-scroll pinned' });
   scroll.appendChild(table);
   tableHost.innerHTML = '';
   tableHost.appendChild(scroll);
+  pinHeaderRows(scroll);
 }

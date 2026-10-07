@@ -156,12 +156,23 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G14 | Bỏ trống mục bắt buộc rồi bấm Lưu | Hộp thoại **không** đóng, mục thiếu viền đỏ kèm dòng báo lỗi; gõ vào là lỗi biến mất ngay |
 | G15 | Nút xoá trong hộp thoại sửa | Hỏi lại ngay trong hộp thoại đó, con trỏ mặc định ở "Quay lại" — nhấn Enter nhầm không xoá mất gì |
 | G16 | Ô nhập trong hộp thoại trên iPhone | Cỡ chữ 16px, chạm vào không bị tự phóng to trang |
+| G17 | Tab Tổng quan | Tổng thu · Tổng chi · Chênh lệch **chỉ xuất hiện một lần**, ở dải chỉ số đầu trang. Không có thẻ nào lặp lại ba con số đó |
+| G18 | Ô "Chênh lệch" ở dải chỉ số | Đứng đầu, có nền khác năm ô còn lại, số to hơn |
+| G19 | Bảng Thu theo đợt và Điểm danh | Cuộn xuống: hàng tiêu đề và hàng Tổng vẫn dính. Cuộn sang phải: cột tên vẫn dính trái |
+| G20 | Hàng tiêu đề thứ hai (Đóng · Tham gia) | Dính ngay dưới hàng tên đợt, không chồng lên và không hở — kể cả khi đổi cỡ chữ |
+| G21 | Khối "Ai đi những buổi nào" | Mỗi người một dãy ô, mỗi ô là một buổi, cũ nhất bên trái; ô đậm = có mặt |
+| G22 | Biểu đồ trên điện thoại | Chữ vẫn đọc được, cuộn ngang trong khung của nó chứ không bị thu nhỏ |
+| G23 | Ô tiền trong bảng | Rộng 78px trên máy tính, 62px trên điện thoại — không bị `min-width` của ô chữ nong ra 90px |
 
 > G1 từng lỗi 6px vì `nav.tabs` có margin âm không khớp padding của `body` ở màn hình nhỏ.
 > G3 từng đếm thừa 2 vì lấy thẳng `headers.length`.
 >
 > Thứ tự "mới nhất trước" được sắp **một lần** trong `absorb()` của `js/dataStore.js`, theo ngày chứ
 > không theo thứ tự nhập. Các view không tự sắp lại; riêng biểu đồ cố ý đảo về cũ → mới.
+>
+> Hàng tiêu đề thứ hai ghim bằng biến `--head1`, do `pinHeaderRows()` trong `js/utils.js` đo
+> chiều cao hàng đầu rồi gán. Đừng thay bằng số cứng trong CSS — chiều cao đó đổi theo cỡ chữ
+> và theo việc nhãn có xuống dòng hay không.
 >
 > Hộp thoại nằm ở `js/dialog.js` (`openForm`, `confirmDialog`), lịch ở `js/datepicker.js`
 > (`buildCalendar` dùng trong hộp thoại, `openDatePopover` bật ra cạnh ô trong bảng).

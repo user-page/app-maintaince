@@ -1,7 +1,7 @@
 // Tab "Thu theo đợt" — bảng chính, cũng là nơi nhập liệu.
 // Mỗi ô có 2 phần: số tiền đóng (gõ được) và trạng thái tham gia (bấm o/x).
 // Thêm/xoá được cả người lẫn đợt. Mọi tab khác đọc lại cùng dữ liệu này nên luôn khớp.
-import { el, esc, fmt, amountSpan, fmtDate, keepFocus } from '../utils.js';
+import { el, esc, fmt, amountSpan, fmtDate, keepFocus, pinHeaderRows } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
   memberTotal, periodTotal, periodJoinCount,
@@ -16,7 +16,8 @@ let host = null, tableHost = null, toolbarHost = null;
 
 function joinBtn(v, mid, pid){
   const cls = v === 'o' ? 'o' : v === 'x' ? 'x' : '';
-  const label = v === 'o' ? '✓ o' : v === 'x' ? '✕ x' : '—';
+  // nhóm vốn ghi o / x trong sổ Excel — giữ đúng ký hiệu đó, màu lo phần còn lại
+  const label = v === 'o' ? 'o' : v === 'x' ? 'x' : '·';
   const dis = getCanEdit() ? '' : ' disabled';
   return '<button type="button" class="toggle-cell ' + cls + '" data-act="join" data-m="' + mid +
     '" data-p="' + pid + '"' + dis + ' aria-label="Đổi trạng thái tham gia">' + label + '</button>';
@@ -126,10 +127,11 @@ function renderTable(){
 
   const table = el('table', { class: 'matrix' });
   table.innerHTML = thead + tbody + tfoot;
-  const scroll = el('div', { class: 'table-scroll' });
+  const scroll = el('div', { class: 'table-scroll pinned' });
   scroll.appendChild(table);
   tableHost.innerHTML = '';
   tableHost.appendChild(scroll);
+  pinHeaderRows(scroll);
 }
 
 function renderGrandTotals(){
