@@ -89,10 +89,27 @@ export function netTotal(){ return totalThu() + totalChi(); }
 function num(v){ return (v === null || v === undefined || v === '') ? null : Number(v); }
 const bySort = function(a, b){ return (a.sort_order || 0) - (b.sort_order || 0); };
 
+// Thứ tự hiển thị của đợt và khoản chi: MỚI NHẤT TRƯỚC.
+//   - dòng chưa có ngày (đợt chưa chốt, khoản vừa thêm) đứng đầu, vì đó là thứ đang làm dở
+//   - rồi tới ngày giảm dần ('YYYY-MM-DD' nên so chuỗi là đủ)
+//   - cùng ngày thì cái thêm sau đứng trước
+// Sắp ở đây một lần để mọi tab cùng một thứ tự; view không tự sắp lại.
+function newestFirst(field){
+  return function(a, b){
+    const da = a[field] || '', db = b[field] || '';
+    if(da !== db){
+      if(!da) return -1;
+      if(!db) return 1;
+      return da < db ? 1 : -1;
+    }
+    return (b.sort_order || 0) - (a.sort_order || 0);
+  };
+}
+
 function absorb(ms, ps, cs, es){
   members  = (ms || []).slice().sort(bySort);
-  periods  = (ps || []).slice().sort(bySort);
-  expenses = (es || []).slice().sort(bySort);
+  periods  = (ps || []).slice().sort(newestFirst('event_date'));
+  expenses = (es || []).slice().sort(newestFirst('spend_date'));
   cells = {};
   (cs || []).forEach(function(c){
     cells[key(c.member_id, c.period_id)] = { amount: num(c.amount), joined: c.joined || null };

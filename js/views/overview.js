@@ -57,7 +57,11 @@ function renderStats(){
 
 function renderChart(){
   if(!chartHost) return;
-  const ps = pastPeriods();
+  // Biểu đồ là trục thời gian nên đọc từ trái sang phải, cũ -> mới — ngược với thứ tự
+  // "mới nhất trước" của các bảng.
+  const ps = pastPeriods().slice().sort(function(a, b){
+    return a.event_date < b.event_date ? -1 : a.event_date > b.event_date ? 1 : 0;
+  });
   const labels = ps.map(function(p){ return fmtDate(p.event_date); });
   const thu = {}, chi = {};
   ps.forEach(function(p){ thu[fmtDate(p.event_date)] = periodTotal(p.id); });

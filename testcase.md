@@ -143,9 +143,16 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G4 | Chế độ tối của hệ điều hành | Chữ vẫn đọc được, không chỗ nào chữ trắng trên nền trắng |
 | G5 | Số tiền | Hiển thị có dấu chấm phân cách nghìn, số âm có dấu trừ rõ ràng |
 | G6 | Chuyển qua lại giữa 5 tab | Không lỗi JS trong Console (mở `⌥⌘I`) |
+| G7 | Thứ tự cột đợt ở tab Thu theo đợt và tab Điểm danh | **Mới nhất bên trái**: Đợt 6, Đợt 5, … Đợt 1. Đợt chưa chốt ngày đứng trước tất cả. Hai tab cùng một thứ tự |
+| G8 | Thứ tự dòng ở tab Chi tiêu | Ngày giảm dần; khoản vừa thêm nằm trên cùng |
+| G9 | Biểu đồ ở Tổng quan | Vẫn đọc trái → phải theo thời gian, cũ → mới |
+| G10 | Sau khi đảo thứ tự, dòng "Tổng" dưới bảng | Tổng của cột nào vẫn nằm đúng dưới cột đó — đối chiếu một đợt bất kỳ bằng cách cộng tay |
 
 > G1 từng lỗi 6px vì `nav.tabs` có margin âm không khớp padding của `body` ở màn hình nhỏ.
 > G3 từng đếm thừa 2 vì lấy thẳng `headers.length`.
+>
+> Thứ tự "mới nhất trước" được sắp **một lần** trong `absorb()` của `js/dataStore.js`, theo ngày chứ
+> không theo thứ tự nhập. Các view không tự sắp lại; riêng biểu đồ cố ý đảo về cũ → mới.
 
 ---
 
