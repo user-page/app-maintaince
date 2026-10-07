@@ -2,7 +2,7 @@
 import { el, esc, fmtDate } from '../utils.js';
 import { buildBarChart } from '../charts.js';
 import {
-  getMembers, getExpenses, pastPeriods, cellFor,
+  getMembers, getExpenses, pastPeriods, datedPeriods, cellFor,
   periodTotal, sessionsAttended, onChange
 } from '../dataStore.js';
 
@@ -43,7 +43,7 @@ function renderChart(){
   if(!chartHost) return;
   // Biểu đồ là trục thời gian nên đọc từ trái sang phải, cũ -> mới — ngược với thứ tự
   // "mới nhất trước" của các bảng.
-  const ps = pastPeriods().slice().sort(function(a, b){
+  const ps = datedPeriods().slice().sort(function(a, b){
     return a.event_date < b.event_date ? -1 : a.event_date > b.event_date ? 1 : 0;
   });
   const labels = ps.map(function(p){ return fmtDate(p.event_date); });
@@ -67,8 +67,8 @@ function renderAttendance(){
   });
   const nPast = ps.length;
   if(attendDesc){
-    attendDesc.textContent = 'Mỗi ô là một buổi, cũ nhất bên trái. Ô đậm là có mặt. ' +
-      'Lấy từ cột Tham gia ở bảng Thu theo đợt, đánh dấu ở đâu cũng hiện ở đây.';
+    attendDesc.textContent = 'Mỗi ô là một buổi đã qua, cũ nhất bên trái. Ô đậm là có mặt. ' +
+      'Buổi chưa tới chưa tính vào đây. Lấy từ cột Tham gia ở bảng Thu theo đợt.';
   }
 
   const rows = members.map(function(m){

@@ -3,7 +3,7 @@
 import { el, esc, fmtDate, pinHeaderRows } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
-  periodJoinCount, sessionsAttended, pastPeriods, cycleJoined, onChange
+  periodJoinCount, sessionsAttended, pastPeriods, isUpcoming, cycleJoined, onChange
 } from '../dataStore.js';
 
 let tableHost = null;
@@ -12,7 +12,8 @@ export function buildAttendees(mount){
   const card = el('div', { class: 'card' });
   card.appendChild(el('h2', {}, 'Điểm danh'));
   card.appendChild(el('div', { class: 'desc' },
-    'Ai có mặt ở buổi nào. Đây chính là cột "Tham gia" của tab Thu theo đợt — sửa ở đâu cũng như nhau.'));
+    'Ai có mặt ở buổi nào. Đây chính là cột "Tham gia" của tab Thu theo đợt — sửa ở đâu cũng như nhau. ' +
+    'Cột "Số buổi" chỉ tính các buổi đã qua; buổi sắp tới chưa vào mẫu số.'));
   card.appendChild(el('div', { id: 'atEditNote', class: 'edit-note' }, 'Đang kết nối để bật chỉnh sửa…'));
   tableHost = el('div', {});
   card.appendChild(tableHost);
@@ -33,9 +34,9 @@ function render(){
 
   let thead = '<thead><tr><th class="sticky-col">Người</th>';
   periods.forEach(function(p){
-    const up = p.event_date ? '' : ' upcoming';
+    const up = isUpcoming(p) ? ' upcoming' : '';
     thead += '<th class="center' + up + '">' + esc(p.label || '') +
-      '<br><span class="sub-date">' + (p.event_date ? fmtDate(p.event_date) : 'chưa chốt') + '</span></th>';
+      '<br><span class="sub-date">' + (p.event_date ? fmtDate(p.event_date) + (isUpcoming(p) ? ' · sắp tới' : '') : 'chưa chốt') + '</span></th>';
   });
   thead += '<th class="num-col">Số buổi</th></tr></thead>';
 
@@ -47,7 +48,7 @@ function render(){
       const cls = v === 'o' ? 'o' : v === 'x' ? 'x' : '';
       const label = v === 'o' ? 'o' : v === 'x' ? 'x' : '·';
       const dis = getCanEdit() ? '' : ' disabled';
-      const up = p.event_date ? '' : ' upcoming';
+      const up = isUpcoming(p) ? ' upcoming' : '';
       tbody += '<td class="center' + up + '"><button type="button" class="toggle-cell ' + cls +
         '" data-m="' + m.id + '" data-p="' + p.id + '"' + dis + '>' + label + '</button></td>';
     });
@@ -57,7 +58,7 @@ function render(){
 
   let tfoot = '<tfoot><tr><td class="sticky-col">Có mặt</td>';
   periods.forEach(function(p){
-    const up = p.event_date ? '' : ' upcoming';
+    const up = isUpcoming(p) ? ' upcoming' : '';
     tfoot += '<td class="center num' + up + '">' + periodJoinCount(p.id) + '</td>';
   });
   tfoot += '<td class="num-col"></td></tr></tfoot>';

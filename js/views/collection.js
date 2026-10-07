@@ -8,7 +8,7 @@ import {
   totalThu, totalChi, netTotal,
   stageCell, isCellDirty, pendingCount, hasPending, saveAll, discardChanges,
   cycleJoined, addMember, renameMember, deleteMember,
-  addPeriod, updatePeriod, deletePeriod, onChange
+  addPeriod, updatePeriod, deletePeriod, isUpcoming, isPast, onChange
 } from '../dataStore.js';
 import { openForm, confirmDialog } from '../dialog.js';
 
@@ -79,21 +79,27 @@ function renderToolbar(){
     (n ? '<button type="button" class="chip" data-act="discard">Huỷ thay đổi</button>' : '');
 }
 
+// Dòng ngày dưới tên đợt. Ba trạng thái: chưa chốt ngày · đã chốt nhưng chưa tới · đã qua.
+function periodWhen(p){
+  if(!p.event_date) return 'chưa chốt ngày';
+  return fmtDate(p.event_date) + (isPast(p) ? '' : ' · sắp tới');
+}
+
 function renderTable(){
   const members = getMembers(), periods = getPeriods();
 
   let thead = '<thead><tr><th class="sticky-col" rowspan="2">Người</th>';
   periods.forEach(function(p){
-    const up = p.event_date ? '' : ' upcoming';
+    const up = isUpcoming(p) ? ' upcoming' : '';
     const edit = getCanEdit()
       ? '<button type="button" class="col-edit" data-act="edit-period" data-p="' + p.id + '" title="Sửa / xoá đợt" aria-label="Sửa hoặc xoá ' + esc(p.label || 'đợt') + '">⋯</button>'
       : '';
     thead += '<th class="center' + up + '" colspan="2">' + esc(p.label || '') + edit +
-      '<br><span class="sub-date">' + (p.event_date ? fmtDate(p.event_date) : 'chưa chốt ngày') + '</span></th>';
+      '<br><span class="sub-date">' + periodWhen(p) + '</span></th>';
   });
   thead += '<th class="num-col" rowspan="2">Tổng đóng</th></tr><tr>';
   periods.forEach(function(p){
-    const up = p.event_date ? '' : ' upcoming';
+    const up = isUpcoming(p) ? ' upcoming' : '';
     thead += '<th class="num-col' + up + '">Đóng</th><th class="center' + up + '">Tham gia</th>';
   });
   thead += '</tr></thead>';
@@ -109,7 +115,7 @@ function renderTable(){
     tbody += '<tr><td class="sticky-col">' + nameCell + del + '</td>';
     periods.forEach(function(p){
       const c = cellFor(m.id, p.id);
-      const up = p.event_date ? '' : ' upcoming';
+      const up = isUpcoming(p) ? ' upcoming' : '';
       tbody += '<td class="num-col' + up + '">' + amountCell(c.amount, m.id, p.id) + '</td>' +
         '<td class="center' + up + '">' + joinBtn(c.joined, m.id, p.id) + '</td>';
     });
@@ -119,7 +125,7 @@ function renderTable(){
 
   let tfoot = '<tfoot><tr><td class="sticky-col">Tổng</td>';
   periods.forEach(function(p){
-    const up = p.event_date ? '' : ' upcoming';
+    const up = isUpcoming(p) ? ' upcoming' : '';
     tfoot += '<td class="num-col num' + up + '">' + fmt(periodTotal(p.id)) + '</td>' +
       '<td class="center num' + up + '">' + periodJoinCount(p.id) + '</td>';
   });

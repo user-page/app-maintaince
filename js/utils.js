@@ -143,3 +143,11 @@ export function pinHeaderRows(scroll){
     window.addEventListener('resize', set);
   }
 }
+
+// Hôm nay theo giờ máy, dạng 'YYYY-MM-DD'. KHÔNG dùng toISOString() — nó tính theo giờ UTC,
+// nên ở Việt Nam trước 7 giờ sáng sẽ ra ngày hôm qua.
+export function todayISO(){
+  const t = new Date();
+  const p = function(n){ return (n < 10 ? '0' : '') + n; };
+  return t.getFullYear() + '-' + p(t.getMonth() + 1) + '-' + p(t.getDate());
+}

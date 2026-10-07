@@ -1,19 +1,12 @@
 // Lịch chọn ngày — bấm vào ngày để chọn, không phải gõ.
 // Dùng ở hai chỗ: nằm sẵn trong hộp thoại thêm/sửa (buildCalendar), và bật ra cạnh một ô
 // trong bảng (openDatePopover). Giá trị luôn là chuỗi 'YYYY-MM-DD' hoặc null.
-import { el, fmtDate } from './utils.js';
+import { el, fmtDate, todayISO } from './utils.js';
 
 const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];   // tuần bắt đầu từ thứ Hai
 
 function pad(n){ return (n < 10 ? '0' : '') + n; }
-export function toISO(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
-
-// Ngày hôm nay theo giờ máy. Không dùng toISOString() vì nó tính theo giờ UTC —
-// ở Việt Nam trước 7 giờ sáng sẽ ra ngày hôm qua.
-export function todayISO(){
-  const t = new Date();
-  return toISO(t.getFullYear(), t.getMonth(), t.getDate());
-}
+function toISO(y, m, d){ return y + '-' + pad(m + 1) + '-' + pad(d); }
 
 function parseISO(iso){
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);

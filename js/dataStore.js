@@ -15,6 +15,7 @@
 //
 // Các view không gọi Firestore trực tiếp — chỉ gọi hàm ở đây và đăng ký onChange.
 import { getMods } from './firebase.js';
+import { todayISO } from './utils.js';
 
 let canEdit = false;
 let usingFallback = false;
@@ -48,9 +49,26 @@ export function cellFor(mid, pid){
   return cells[key(mid, pid)] || { amount: null, joined: null };
 }
 
-// Đợt "đã diễn ra" = có ngày. Đợt chưa chốt ngày (Buổi tới) không tính vào số buổi tham gia.
-export function pastPeriods(){
+// Ba cách gọi một đợt, đừng lẫn:
+//   - có ngày        : đã chốt được ngày, kể cả ngày đó còn ở tương lai → dùng để vẽ biểu đồ,
+//                      vì tiền của buổi sắp tới cũng đã thu rồi
+//   - đã qua         : có ngày VÀ ngày đó không còn ở tương lai → dùng để đếm số buổi tham gia
+//   - sắp tới        : chưa chốt ngày, hoặc ngày còn ở tương lai → tô màu riêng trong bảng
+// Buổi chưa tới thì chưa ai đi được, nên không được tính vào mẫu số "x trên y buổi".
+// Ngày diễn ra tính là đã qua ngay trong hôm đó: tiền thường thu ngay tối hôm nhậu.
+export function isPast(p){
+  return !!(p && p.event_date) && p.event_date <= todayISO();
+}
+export function isUpcoming(p){ return !isPast(p); }
+
+// đợt đã chốt ngày, kể cả buổi sắp tới
+export function datedPeriods(){
   return periods.filter(function(p){ return !!p.event_date; });
+}
+
+// chỉ những đợt đã qua
+export function pastPeriods(){
+  return periods.filter(isPast);
 }
 
 export function memberTotal(mid){

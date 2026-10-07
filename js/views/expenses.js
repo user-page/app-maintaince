@@ -1,12 +1,12 @@
 // Tab "Chi tiêu" — thêm / sửa / xoá được từng khoản chi.
 // Tổng chi và Chênh lệch ở các tab khác cộng thẳng từ đây nên đổi ở đây là mọi nơi đổi theo.
-import { el, esc, fmt, amountSpan, fmtDate, keepFocus } from '../utils.js';
+import { el, esc, fmt, amountSpan, fmtDate, keepFocus, todayISO } from '../utils.js';
 import {
   getExpenses, getCanEdit, totalChi, addExpense, deleteExpense, onChange,
   stageExpense, isExpenseDirty, pendingCount, saveAll, discardChanges
 } from '../dataStore.js';
 import { openForm, confirmDialog } from '../dialog.js';
-import { openDatePopover, todayISO } from '../datepicker.js';
+import { openDatePopover } from '../datepicker.js';
 
 const CAL_ICON = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">' +
   '<rect x="1.5" y="3" width="13" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>' +

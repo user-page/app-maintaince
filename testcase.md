@@ -21,15 +21,24 @@ hardcode ở đâu. Nếu một trong các test này fail thì có chỗ nào đ
 | A3 | Cộng tay cột tiền ở tab Chi tiêu | Bằng Tổng chi trên Tổng quan |
 | A4 | Cộng tay cột "Tổng" từng người ở tab Đóng góp | Cũng bằng Tổng thu |
 | A5 | Số buổi tham gia của một người bất kỳ | Không lớn hơn số "Đợt đã diễn ra" trên Tổng quan |
+| A5b | Mẫu số "x trên y buổi" | y = số đợt **đã qua**, không đếm đợt chưa tới ngày và đợt chưa chốt ngày |
+| A5c | Đánh dấu `o` cho một đợt chưa tới ngày | Số buổi tham gia **không** tăng; đánh dấu vẫn lưu được để ghi ai đã đóng tiền trước |
 | A6 | Số buổi ở tab Tổng quan so với số dấu `o` của người đó ở tab Thu theo đợt | Bằng nhau, trên các đợt có ngày |
 | A7 | Tab Điểm danh và tab Thu theo đợt | Cùng một người, cùng một đợt phải cho cùng kết quả — hai tab đọc chung một nguồn |
 | A8 | Ô tiền để trống | Tính là 0, không phải `NaN`, và không làm hỏng dòng tổng |
 | A9 | Đổi một ô tiền rồi lưu | Tất cả các tổng liên quan (đợt, người, Tổng quan) đổi theo ngay, không cần tải lại trang |
 
-> Quy ước đang dùng: **đợt "đã diễn ra" = đợt có ngày**. Đợt chưa chốt ngày (Buổi tới) không
-> tính vào số buổi tham gia. Lưu ý Đợt 6 có ngày 11/10/2026 nên nó *đang được tính*, kể cả khi
-> ngày đó chưa tới. Nếu muốn chỉ tính đợt đã qua thật thì phải sửa `pastPeriods()` trong
-> `js/dataStore.js` và cập nhật lại test A5, A6.
+> Ba cách gọi một đợt, đừng lẫn — xem `isPast()` / `datedPeriods()` / `pastPeriods()` trong
+> `js/dataStore.js`:
+>
+> | | nghĩa | dùng ở đâu |
+> |---|---|---|
+> | có ngày | đã chốt ngày, kể cả ngày còn ở tương lai | vẽ biểu đồ Thu/Chi — tiền buổi sắp tới cũng đã thu |
+> | đã qua | có ngày **và** ngày đó không còn ở tương lai | đếm số buổi tham gia, ô "Đợt đã diễn ra" |
+> | sắp tới | chưa chốt ngày, hoặc ngày còn ở tương lai | tô màu riêng trong bảng, kèm nhãn "· sắp tới" |
+>
+> Buổi chưa tới thì chưa ai đi được, nên không vào mẫu số "x trên y buổi". Ngày diễn ra tính là
+> đã qua **ngay trong hôm đó**, vì tiền thường thu ngay tối hôm nhậu.
 
 ---
 
@@ -45,7 +54,7 @@ liệu thì bảng này hết dùng được — lúc đó chỉ còn nhóm A l�
 | B3 | Tổng quan · Tổng chi | −18.021 |
 | B4 | Tổng quan · Chênh lệch | 579 |
 | B5 | Tổng quan · Thành viên | 17 |
-| B6 | Tổng quan · Đợt đã diễn ra | 6 |
+| B6 | Tổng quan · Đợt đã diễn ra | Số đợt có ngày **đã qua**. Tính tới 07/10/2026 là 5 (Đợt 6 ngày 11/10 chưa tới), phụ đề ghi "trên 6 đợt" |
 | B7 | Tổng quan · Khoản chi | 10 |
 | B8 | Firestore Console | Đúng 4 collection: `members`, `periods`, `contributions`, `expenses` |
 | B9 | Số document trong `contributions` | 89 |
@@ -160,7 +169,10 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G18 | Ô "Chênh lệch" ở dải chỉ số | Đứng đầu, có nền khác năm ô còn lại, số to hơn |
 | G19 | Bảng Thu theo đợt và Điểm danh | Cuộn xuống: hàng tiêu đề và hàng Tổng vẫn dính. Cuộn sang phải: cột tên vẫn dính trái |
 | G20 | Hàng tiêu đề thứ hai (Đóng · Tham gia) | Dính ngay dưới hàng tên đợt, không chồng lên và không hở — kể cả khi đổi cỡ chữ |
-| G21 | Khối "Ai đi những buổi nào" | Mỗi người một dãy ô, mỗi ô là một buổi, cũ nhất bên trái; ô đậm = có mặt |
+| G21 | Khối "Ai đi những buổi nào" | Mỗi người một dãy ô, mỗi ô là một buổi **đã qua**, cũ nhất bên trái; ô đậm = có mặt |
+| G24 | Cột của đợt chưa tới ngày | Tô nền riêng, dòng ngày ghi thêm "· sắp tới" |
+| G25 | Biểu đồ Thu/Chi | **Vẫn** vẽ đợt sắp tới đã chốt ngày — tiền của buổi đó đã thu rồi |
+| G26 | Đợt có ngày đúng hôm nay | Tính là đã qua: vào mẫu số, **không** tô "sắp tới" |
 | G22 | Biểu đồ trên điện thoại | Chữ vẫn đọc được, cuộn ngang trong khung của nó chứ không bị thu nhỏ |
 | G23 | Ô tiền trong bảng | Rộng 78px trên máy tính, 62px trên điện thoại — không bị `min-width` của ô chữ nong ra 90px |
 
