@@ -27,6 +27,7 @@ hardcode ở đâu. Nếu một trong các test này fail thì có chỗ nào đ
 | A7 | Tab Điểm danh và tab Thu theo đợt | Cùng một người, cùng một đợt phải cho cùng kết quả — hai tab đọc chung một nguồn |
 | A8 | Ô tiền để trống | Tính là 0, không phải `NaN`, và không làm hỏng dòng tổng |
 | A9 | Đổi một ô tiền rồi lưu | Tất cả các tổng liên quan (đợt, người, Tổng quan) đổi theo ngay, không cần tải lại trang |
+| A10 | Cột "Số lần đóng" ở tab Đóng góp | Bằng số đợt mà người đó có số tiền > 0 — đếm tay một người để đối chiếu |
 
 > Ba cách gọi một đợt, đừng lẫn — xem `isPast()` / `datedPeriods()` / `pastPeriods()` trong
 > `js/dataStore.js`:
@@ -173,6 +174,11 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G24 | Cột của đợt chưa tới ngày | Tô nền riêng, dòng ngày ghi thêm "· sắp tới" |
 | G25 | Biểu đồ Thu/Chi | **Vẫn** vẽ đợt sắp tới đã chốt ngày — tiền của buổi đó đã thu rồi |
 | G26 | Đợt có ngày đúng hôm nay | Tính là đã qua: vào mẫu số, **không** tô "sắp tới" |
+| G27 | Tab Đóng góp lúc mới mở | Sắp theo **Số lần đóng**, nhiều nhất lên đầu; cột đó có mũi tên ▼ |
+| G28 | Bấm tiêu đề một cột khác | Sắp theo cột đó, số thì cao→thấp, cột Người thì A→Z; mũi tên chuyển sang cột vừa bấm |
+| G29 | Bấm lại cột đang sắp | Đảo chiều, mũi tên đổi ▼ ↔ ▲ |
+| G30 | Sửa một ô tiền ở tab Thu theo đợt rồi quay lại Đóng góp | Vẫn giữ cột và chiều sắp đang chọn, không nhảy về mặc định |
+| G31 | Người cùng số ở cột đang sắp | Xét tiếp Tổng đã đóng rồi tên — thứ tự không nhảy ngẫu nhiên giữa các lần vẽ |
 | G22 | Biểu đồ trên điện thoại | Chữ vẫn đọc được, cuộn ngang trong khung của nó chứ không bị thu nhỏ |
 | G23 | Ô tiền trong bảng | Rộng 78px trên máy tính, 62px trên điện thoại — không bị `min-width` của ô chữ nong ra 90px |
 
