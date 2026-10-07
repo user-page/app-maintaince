@@ -85,6 +85,9 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | D6 | Gõ số rồi nhấn `Tab` sang ô kế | Con trỏ sang đúng ô kế tiếp, **không nhảy về đầu bảng**; số vừa gõ vẫn còn viền vàng |
 | D7 | Ô tiền | Không có nút mũi tên tăng/giảm; gõ chữ cái thì không nhận |
 | D8 | Đang gõ dở mà có người khác sửa dữ liệu | Bảng **không** tự tải lại đè lên thứ đang gõ |
+| D11 | Ô ngày ở tab Chi tiêu | Là **nút bấm mở lịch**, không phải ô gõ ngày. Không còn `<input type="date">` ở đâu |
+| D12 | Chọn ngày trong lịch bật ra | Ô đổi sang ngày mới + viền vàng, nút Lưu đếm thêm 1; chỉ ghi xuống server khi bấm Lưu |
+| D13 | Lịch bật ra | Esc đóng, bấm ra ngoài đóng, cuộn trang thì lịch đi theo ô của nó; luôn nằm gọn trong màn hình |
 
 > D6 từng hỏng: `Tab` chuyển focus trước khi sự kiện `change` chạy, nên bảng vẽ lại và mất con
 > trỏ. Chỗ sửa là `keepFocus()` trong `js/utils.js`.
@@ -147,12 +150,23 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G8 | Thứ tự dòng ở tab Chi tiêu | Ngày giảm dần; khoản vừa thêm nằm trên cùng |
 | G9 | Biểu đồ ở Tổng quan | Vẫn đọc trái → phải theo thời gian, cũ → mới |
 | G10 | Sau khi đảo thứ tự, dòng "Tổng" dưới bảng | Tổng của cột nào vẫn nằm đúng dưới cột đó — đối chiếu một đợt bất kỳ bằng cách cộng tay |
+| G11 | Thêm / sửa người, đợt, khoản chi | Mở **hộp thoại trong trang**, không phải hộp thoại xám của trình duyệt. Không nơi nào còn dùng `prompt()` / `confirm()` |
+| G12 | Hộp thoại | Esc đóng · bấm ra nền tối đóng · con trỏ bàn phím không ra khỏi hộp thoại · trên điện thoại nằm gọn trong màn hình |
+| G13 | Lịch chọn ngày | Tuần bắt đầu từ T2 · hôm nay có viền · ngày đang chọn tô đậm · luôn 6 tuần nên không nhảy chiều cao khi đổi tháng · mũi tên và PageUp/PageDown đi được bằng bàn phím |
+| G14 | Bỏ trống mục bắt buộc rồi bấm Lưu | Hộp thoại **không** đóng, mục thiếu viền đỏ kèm dòng báo lỗi; gõ vào là lỗi biến mất ngay |
+| G15 | Nút xoá trong hộp thoại sửa | Hỏi lại ngay trong hộp thoại đó, con trỏ mặc định ở "Quay lại" — nhấn Enter nhầm không xoá mất gì |
+| G16 | Ô nhập trong hộp thoại trên iPhone | Cỡ chữ 16px, chạm vào không bị tự phóng to trang |
 
 > G1 từng lỗi 6px vì `nav.tabs` có margin âm không khớp padding của `body` ở màn hình nhỏ.
 > G3 từng đếm thừa 2 vì lấy thẳng `headers.length`.
 >
 > Thứ tự "mới nhất trước" được sắp **một lần** trong `absorb()` của `js/dataStore.js`, theo ngày chứ
 > không theo thứ tự nhập. Các view không tự sắp lại; riêng biểu đồ cố ý đảo về cũ → mới.
+>
+> Hộp thoại nằm ở `js/dialog.js` (`openForm`, `confirmDialog`), lịch ở `js/datepicker.js`
+> (`buildCalendar` dùng trong hộp thoại, `openDatePopover` bật ra cạnh ô trong bảng).
+> `todayISO()` lấy ngày theo giờ máy — đừng quay lại dùng `toISOString()`, nó tính theo UTC nên
+> ở Việt Nam trước 7 giờ sáng sẽ ra ngày hôm qua.
 
 ---
 

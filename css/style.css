@@ -362,3 +362,123 @@
 @media (max-width:400px){
   .mini-stats{ grid-template-columns:1fr; }
 }
+
+/* ============================================================================
+   Hộp thoại thêm / sửa / xác nhận (js/dialog.js) và lịch chọn ngày (js/datepicker.js)
+   ============================================================================ */
+dialog.dlg{
+  border:none; padding:0; margin:auto; color:var(--ink); background:var(--surface);
+  border-radius:16px; width:min(400px, calc(100vw - 24px));
+  max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,0,0,.12), 0 24px 60px -18px rgba(0,0,0,.45);
+}
+dialog.dlg.dlg-small{ width:min(360px, calc(100vw - 24px)); }
+dialog.dlg::backdrop{ background:rgba(16,22,18,.5); }
+/* trình duyệt cũ không có showModal(): vẫn hiện giữa màn hình, tự vẽ nền tối */
+dialog.dlg[open]:not(:modal){ position:fixed; inset:0; z-index:80; box-shadow:0 0 0 100vmax rgba(16,22,18,.5); }
+.dlg [hidden]{ display:none !important; }
+
+.dlg-form{ display:flex; flex-direction:column; max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px); }
+.dlg-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:16px 18px 4px; }
+.dlg-head h3{ font-size:18px; line-height:1.3; overflow-wrap:anywhere; }
+.dlg-x{
+  appearance:none; border:none; background:transparent; color:var(--ink-3); cursor:pointer;
+  width:32px; height:32px; border-radius:50%; font-size:20px; line-height:1; flex:0 0 auto; font-family:inherit;
+}
+.dlg-x:hover{ background:var(--surface-2); color:var(--ink); }
+
+.dlg-body{ padding:10px 18px 6px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; min-height:0; }
+.dlg-body p, .dlg-confirm p{ margin:0; color:var(--ink-2); font-size:14px; line-height:1.55; }
+.dlg-confirm p{ padding:10px 18px 16px; }
+.dlg-field{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.dlg-label{ font-size:12.5px; font-weight:600; color:var(--ink-2); }
+/* 16px: nhỏ hơn thì Safari trên iPhone tự phóng to trang khi chạm vào ô */
+.dlg-field input{
+  font-family:inherit; font-size:16px; padding:9px 11px; width:100%;
+  border:1px solid var(--line); border-radius:9px; background:var(--paper); color:var(--ink);
+}
+.dlg-field input.num{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+.dlg-field input::placeholder{ color:var(--ink-3); }
+.dlg-field.bad input{ border-color:var(--bad); }
+.dlg-hint{ font-size:12px; color:var(--ink-3); line-height:1.45; }
+.dlg-err{ font-size:12px; color:var(--bad); font-weight:600; }
+.dlg-err:empty{ display:none; }
+.dlg-date-now{ font-size:14.5px; font-weight:600; font-variant-numeric:tabular-nums; }
+.dlg-date-now.empty{ color:var(--ink-3); font-weight:500; }
+.dlg-field.bad .dlg-cal{ border-color:var(--bad); }
+.dlg-cal{ border:1px solid var(--line); border-radius:11px; padding:8px; background:var(--paper); }
+
+.dlg-foot{
+  display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  padding:12px 18px 16px; border-top:1px solid var(--line); margin-top:8px;
+}
+.btn{
+  appearance:none; border:1px solid transparent; cursor:pointer; font-family:inherit;
+  font-size:13.5px; font-weight:600; padding:9px 15px; border-radius:9px; min-height:40px; white-space:nowrap;
+}
+.btn.primary{ background:var(--accent); color:var(--paper); }
+.btn.primary:hover{ background:var(--accent-2); }
+.btn.ghost{ background:var(--surface-2); color:var(--ink-2); border-color:var(--line); }
+.btn.ghost:hover{ color:var(--ink); }
+.btn.danger{ background:var(--bad); color:var(--paper); }
+.btn.danger:hover{ filter:brightness(1.08); }
+.btn.danger-ghost{ background:transparent; color:var(--bad); padding-inline:8px; }
+.btn.danger-ghost:hover{ background:var(--bad-soft); }
+.dlg :focus-visible, .cal-pop :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+@media (prefers-reduced-motion: no-preference){
+  dialog.dlg[open] .dlg-form{ animation:dlg-in .16s ease-out; }
+  @keyframes dlg-in{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+}
+
+/* ---------- lịch ---------- */
+.cal{ display:flex; flex-direction:column; gap:6px; user-select:none; -webkit-user-select:none; }
+.cal-head{ display:flex; align-items:center; gap:6px; }
+.cal-title{ flex:1; text-align:center; font-size:13.5px; font-weight:600; }
+.cal-nav{
+  appearance:none; border:1px solid var(--line); background:var(--surface); color:var(--ink-2); cursor:pointer;
+  width:34px; height:34px; border-radius:8px; font-size:18px; line-height:1; font-family:inherit; flex:0 0 auto;
+}
+.cal-nav:hover{ color:var(--ink); background:var(--surface-2); }
+.cal-grid{ display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:2px; }
+.cal-wd{ font-size:10.5px; font-weight:600; color:var(--ink-3); text-align:center; padding:4px 0 2px; }
+.cal-day{
+  appearance:none; border:1px solid transparent; background:transparent; color:var(--ink); cursor:pointer;
+  height:36px; border-radius:8px; font-family:inherit; font-size:13px; font-variant-numeric:tabular-nums; padding:0;
+}
+.cal-day:hover{ background:var(--surface-2); }
+.cal-day.out{ color:var(--ink-3); }
+.cal-day.today{ border-color:var(--accent); font-weight:700; }
+.cal-day.sel, .cal-day.sel:hover{ background:var(--accent); color:var(--paper); border-color:var(--accent); font-weight:700; }
+.cal-foot{ display:flex; justify-content:space-between; gap:8px; }
+.cal-link{
+  appearance:none; border:none; background:transparent; color:var(--accent); cursor:pointer;
+  font-family:inherit; font-size:12.5px; font-weight:600; padding:6px 8px; border-radius:7px; min-height:32px;
+}
+.cal-link:hover{ background:var(--accent-soft); }
+
+/* lịch bật ra cạnh một ô trong bảng */
+.cal-pop{
+  position:fixed; z-index:60; width:276px; max-width:calc(100vw - 16px);
+  background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1), 0 18px 40px -14px rgba(0,0,0,.4);
+}
+
+/* ô ngày trong bảng Chi tiêu: bấm để mở lịch, không gõ */
+.date-btn{
+  appearance:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; white-space:nowrap;
+  font-family:inherit; font-size:12.5px; font-variant-numeric:tabular-nums; padding:5px 8px;
+  border:1px solid var(--line); border-radius:6px; background:var(--paper); color:var(--ink);
+}
+.date-btn svg{ color:var(--ink-3); flex:0 0 auto; }
+.date-btn:hover{ border-color:var(--accent); }
+.date-btn:hover svg{ color:var(--accent); }
+.date-btn.empty{ color:var(--ink-3); }
+.date-btn.dirty{ border-color:var(--warn); background:var(--warn-soft); }
+.date-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+
+@media (max-width:560px){
+  .dlg-foot .btn{ flex:1 1 auto; }
+  .dlg-foot .tb-gap{ display:none; }
+  .dlg-foot .btn.danger-ghost{ flex:1 0 100%; order:3; }
+}

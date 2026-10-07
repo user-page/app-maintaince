@@ -10,6 +10,7 @@
 import { toLoginEmail } from './config.js';
 import { initFirebase, getMods } from './firebase.js';
 import { setCanEdit, getCanEdit, loadAll, subscribeRealtime, onPermissionDenied, hasPending } from './dataStore.js';
+import { confirmDialog } from './dialog.js';
 
 function setSyncStatus(status){
   // 'connecting' | 'editor' (chủ trang, ghi được) | 'viewer' (chỉ xem) | 'unavailable'
@@ -42,9 +43,13 @@ function wireLoginBox(){
 
   if(badge) badge.addEventListener('click', function(){
     if(getCanEdit()){
-      if(hasPending() && !confirm('Còn thay đổi chưa lưu. Đăng xuất và bỏ chúng?')) return;
-      const m = getMods();
-      if(m) m.fbAuth.signOut(m.auth);
+      const signOut = function(){ const m = getMods(); if(m) m.fbAuth.signOut(m.auth); };
+      if(!hasPending()){ signOut(); return; }
+      confirmDialog({
+        title: 'Đăng xuất khi còn thay đổi chưa lưu?',
+        message: 'Những ô đang có viền vàng chưa được lưu. Đăng xuất bây giờ thì các thay đổi đó mất.',
+        confirmLabel: 'Đăng xuất và bỏ', cancelLabel: 'Ở lại', danger: true
+      }).then(function(ok){ if(ok) signOut(); });
       return;
     }
     if(box){ box.hidden = !box.hidden; if(!box.hidden && userInput) userInput.focus(); }

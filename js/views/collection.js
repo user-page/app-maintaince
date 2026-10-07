@@ -10,6 +10,7 @@ import {
   cycleJoined, addMember, renameMember, deleteMember,
   addPeriod, updatePeriod, deletePeriod, onChange
 } from '../dataStore.js';
+import { openForm, confirmDialog } from '../dialog.js';
 
 let host = null, tableHost = null, toolbarHost = null;
 
@@ -84,7 +85,7 @@ function renderTable(){
   periods.forEach(function(p){
     const up = p.event_date ? '' : ' upcoming';
     const edit = getCanEdit()
-      ? '<button type="button" class="col-edit" data-act="edit-period" data-p="' + p.id + '" title="Sửa / xoá đợt">⋯</button>'
+      ? '<button type="button" class="col-edit" data-act="edit-period" data-p="' + p.id + '" title="Sửa / xoá đợt" aria-label="Sửa hoặc xoá ' + esc(p.label || 'đợt') + '">⋯</button>'
       : '';
     thead += '<th class="center' + up + '" colspan="2">' + esc(p.label || '') + edit +
       '<br><span class="sub-date">' + (p.event_date ? fmtDate(p.event_date) : 'chưa chốt ngày') + '</span></th>';
@@ -167,55 +168,108 @@ function wireEvents(){
       saveAll();
 
     } else if(act === 'discard'){
-      if(confirm('Bỏ ' + pendingCount() + ' thay đổi chưa lưu và lấy lại số liệu trên máy chủ?'))
-        discardChanges();
+      confirmDialog({
+        title: 'Bỏ thay đổi chưa lưu?',
+        message: 'Có ' + pendingCount() + ' thay đổi chưa lưu. Bỏ đi thì các ô quay về số liệu đang có trên máy chủ.',
+        confirmLabel: 'Bỏ thay đổi', cancelLabel: 'Giữ lại', danger: true
+      }).then(function(ok){ if(ok) discardChanges(); });
 
     } else if(act === 'add-member'){
-      const name = prompt('Tên người mới:');
-      if(name && name.trim()) addMember(name.trim());
+      addMemberDialog();
 
     } else if(act === 'rename-member'){
-      const cur = t.textContent;
-      const name = prompt('Đổi tên:', cur);
-      if(name && name.trim() && name.trim() !== cur) renameMember(t.dataset.m, name.trim());
+      editMemberDialog(t.dataset.m);
 
     } else if(act === 'del-member'){
-      const row = t.closest('tr');
-      const nm = row ? row.querySelector('.sticky-col').textContent.replace('×', '').trim() : '';
-      if(confirm('Xoá "' + nm + '" khỏi tất cả các bảng? Không khôi phục lại được.'))
-        deleteMember(t.dataset.m);
+      const m = memberById(t.dataset.m);
+      if(!m) return;
+      confirmDialog({
+        title: 'Xoá "' + m.name + '"?', message: memberDeleteWarning(m),
+        confirmLabel: 'Xoá hẳn', danger: true
+      }).then(function(ok){ if(ok) deleteMember(m.id); });
 
     } else if(act === 'add-period'){
-      const label = prompt('Tên đợt mới (vd "Đợt 6" hoặc "Buổi tới"):');
-      if(!label || !label.trim()) return;
-      const date = prompt('Ngày (dd/mm/yyyy) — để trống nếu chưa chốt:');
-      addPeriod(label.trim(), parseDate(date));
+      addPeriodDialog();
 
     } else if(act === 'edit-period'){
-      editPeriod(t.dataset.p);
+      editPeriodDialog(t.dataset.p);
     }
   });
 }
 
-function parseDate(s){
-  if(!s || !s.trim()) return null;
-  const m = s.trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if(!m) return null;
-  return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+// ---------- hộp thoại thêm / sửa ----------
+function memberById(id){ return getMembers().filter(function(x){ return x.id === id; })[0]; }
+function periodById(id){ return getPeriods().filter(function(x){ return x.id === id; })[0]; }
+
+function memberDeleteWarning(m){
+  return 'Xoá "' + m.name + '" khỏi tất cả các bảng, kể cả số tiền đã đóng và điểm danh của người này. ' +
+    'Không khôi phục lại được.';
 }
 
-function editPeriod(pid){
-  const p = getPeriods().filter(function(x){ return x.id === pid; })[0];
+// "Đợt 6" đang là số lớn nhất thì gợi ý "Đợt 7"
+function nextPeriodLabel(){
+  let max = 0;
+  getPeriods().forEach(function(p){
+    const m = String(p.label || '').match(/^Đợt\s+(\d+)/i);
+    if(m) max = Math.max(max, Number(m[1]));
+  });
+  return 'Đợt ' + (max + 1);
+}
+
+function periodFields(label, date){
+  return [
+    { name: 'label', label: 'Tên đợt', value: label, required: true, placeholder: 'vd. Đợt 7 hoặc Buổi tới' },
+    { name: 'date', label: 'Ngày diễn ra', type: 'date', value: date, allowEmpty: true, emptyLabel: 'Chưa chốt ngày',
+      hint: 'Đợt chưa chốt ngày vẫn ghi được ai đã đóng tiền, nhưng chưa tính vào số buổi tham gia.' }
+  ];
+}
+
+function addMemberDialog(){
+  openForm({
+    title: 'Thêm người', submitLabel: 'Thêm',
+    fields: [{ name: 'name', label: 'Tên', required: true, placeholder: 'vd. Anh Tư' }]
+  }).then(function(r){
+    if(r && r.action === 'submit') addMember(r.values.name);
+  });
+}
+
+function editMemberDialog(id){
+  const m = memberById(id);
+  if(!m) return;
+  openForm({
+    title: 'Sửa tên', submitLabel: 'Lưu',
+    fields: [{ name: 'name', label: 'Tên', value: m.name, required: true }],
+    danger: { label: 'Xoá người này', message: memberDeleteWarning(m) }
+  }).then(function(r){
+    if(!r) return;
+    if(r.action === 'delete') deleteMember(id);
+    else if(r.values.name !== m.name) renameMember(id, r.values.name);
+  });
+}
+
+function addPeriodDialog(){
+  openForm({
+    title: 'Thêm đợt', submitLabel: 'Thêm đợt',
+    fields: periodFields(nextPeriodLabel(), null)
+  }).then(function(r){
+    if(r && r.action === 'submit') addPeriod(r.values.label, r.values.date);
+  });
+}
+
+function editPeriodDialog(pid){
+  const p = periodById(pid);
   if(!p) return;
-  const label = prompt('Tên đợt (để trống rồi OK để XOÁ đợt này):', p.label || '');
-  if(label === null) return;
-  if(!label.trim()){
-    if(confirm('Xoá đợt "' + (p.label || '') + '" cùng toàn bộ số liệu của đợt đó? Không khôi phục lại được.'))
-      deletePeriod(pid);
-    return;
-  }
-  const cur = p.event_date ? fmtDate(p.event_date) : '';
-  const date = prompt('Ngày (dd/mm/yyyy) — để trống nếu chưa chốt:', cur);
-  if(date === null) return;
-  updatePeriod(pid, { label: label.trim(), event_date: parseDate(date) });
+  openForm({
+    title: 'Sửa đợt', submitLabel: 'Lưu',
+    fields: periodFields(p.label || '', p.event_date || null),
+    danger: {
+      label: 'Xoá đợt này',
+      message: 'Xoá đợt "' + (p.label || '') + '" cùng toàn bộ số tiền và điểm danh của đợt đó. Không khôi phục lại được.'
+    }
+  }).then(function(r){
+    if(!r) return;
+    if(r.action === 'delete') deletePeriod(pid);
+    else if(r.values.label !== (p.label || '') || r.values.date !== (p.event_date || null))
+      updatePeriod(pid, { label: r.values.label, event_date: r.values.date });
+  });
 }
