@@ -1,7 +1,7 @@
 // Tab "Thu theo đợt" — bảng chính, cũng là nơi nhập liệu.
 // Mỗi ô có 2 phần: số tiền đóng (gõ được) và trạng thái tham gia (bấm o/x).
 // Thêm/xoá được cả người lẫn đợt. Mọi tab khác đọc lại cùng dữ liệu này nên luôn khớp.
-import { el, esc, fmt, amountSpan, fmtDate, keepFocus, pinHeaderRows } from '../utils.js';
+import { el, esc, fmt, amountSpan, fmtDate, keepFocus } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
   memberTotal, periodTotal, periodJoinCount,
@@ -137,7 +137,6 @@ function renderTable(){
   scroll.appendChild(table);
   tableHost.innerHTML = '';
   tableHost.appendChild(scroll);
-  pinHeaderRows(scroll);
 }
 
 function renderGrandTotals(){

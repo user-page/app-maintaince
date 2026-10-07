@@ -122,28 +122,6 @@ export function sortableTable(headers, rows, colTypes, renderCell, opts){
   return scroll;
 }
 
-// Bảng có hai hàng tiêu đề (tên đợt / Đóng · Tham gia). Hàng đầu ghim ở top:0, hàng thứ hai
-// phải ghim ngay dưới nó — nhưng chiều cao hàng đầu đổi theo cỡ chữ và theo việc nhãn có
-// xuống dòng hay không, nên đo bằng JS thay vì đặt số cứng trong CSS.
-export function pinHeaderRows(scroll){
-  if(!scroll) return;
-  const rows = scroll.querySelectorAll('thead tr');
-  if(rows.length < 2) return;
-  const set = function(){
-    const h = rows[0].getBoundingClientRect().height;
-    if(h) scroll.style.setProperty('--head1', Math.round(h) + 'px');
-  };
-  set();
-  // sau khi phông web nạp xong thì chiều cao có thể đổi
-  if(document.fonts && document.fonts.ready) document.fonts.ready.then(set).catch(function(){});
-  if(window.ResizeObserver){
-    const ro = new ResizeObserver(set);
-    ro.observe(rows[0]);
-  } else {
-    window.addEventListener('resize', set);
-  }
-}
-
 // Hôm nay theo giờ máy, dạng 'YYYY-MM-DD'. KHÔNG dùng toISOString() — nó tính theo giờ UTC,
 // nên ở Việt Nam trước 7 giờ sáng sẽ ra ngày hôm qua.
 export function todayISO(){

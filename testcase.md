@@ -168,8 +168,8 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G16 | Ô nhập trong hộp thoại trên iPhone | Cỡ chữ 16px, chạm vào không bị tự phóng to trang |
 | G17 | Tab Tổng quan | Tổng thu · Tổng chi · Chênh lệch **chỉ xuất hiện một lần**, ở dải chỉ số đầu trang. Không có thẻ nào lặp lại ba con số đó |
 | G18 | Ô "Chênh lệch" ở dải chỉ số | Đứng đầu, có nền khác năm ô còn lại, số to hơn |
-| G19 | Bảng Thu theo đợt và Điểm danh | Cuộn xuống: hàng tiêu đề và hàng Tổng vẫn dính. Cuộn sang phải: cột tên vẫn dính trái |
-| G20 | Hàng tiêu đề thứ hai (Đóng · Tham gia) | Dính ngay dưới hàng tên đợt, không chồng lên và không hở — kể cả khi đổi cỡ chữ |
+| G19 | Bảng Thu theo đợt và Điểm danh | Hiện **đủ cả 17 dòng**, không có thanh cuộn dọc riêng trong bảng — cuộn dọc là việc của cả trang |
+| G20 | Cuộn ngang trong bảng | Có thanh cuộn ngang; cuộn sang phải thì cột tên vẫn dính bên trái |
 | G21 | Khối "Ai đi những buổi nào" | Mỗi người một dãy ô, mỗi ô là một buổi **đã qua**, cũ nhất bên trái; ô đậm = có mặt |
 | G24 | Cột của đợt chưa tới ngày | Tô nền riêng, dòng ngày ghi thêm "· sắp tới" |
 | G25 | Biểu đồ Thu/Chi | **Vẫn** vẽ đợt sắp tới đã chốt ngày — tiền của buổi đó đã thu rồi |
@@ -188,9 +188,10 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 > Thứ tự "mới nhất trước" được sắp **một lần** trong `absorb()` của `js/dataStore.js`, theo ngày chứ
 > không theo thứ tự nhập. Các view không tự sắp lại; riêng biểu đồ cố ý đảo về cũ → mới.
 >
-> Hàng tiêu đề thứ hai ghim bằng biến `--head1`, do `pinHeaderRows()` trong `js/utils.js` đo
-> chiều cao hàng đầu rồi gán. Đừng thay bằng số cứng trong CSS — chiều cao đó đổi theo cỡ chữ
-> và theo việc nhãn có xuống dòng hay không.
+> `.table-scroll.pinned` chỉ khai `overflow-x` và **không** đặt `max-height`. Đừng thêm
+> `max-height` hay `overflow:auto` vào đó: bảng sẽ mọc thanh cuộn dọc riêng và cắt mất dòng,
+> đúng cái đã bỏ. Cũng vì vậy mà không ghim được hàng tiêu đề theo khung — sticky cần một
+> khung có cuộn dọc.
 >
 > Hộp thoại nằm ở `js/dialog.js` (`openForm`, `confirmDialog`), lịch ở `js/datepicker.js`
 > (`buildCalendar` dùng trong hộp thoại, `openDatePopover` bật ra cạnh ô trong bảng).

@@ -522,20 +522,16 @@ dialog.dlg[open]:not(:modal){ position:fixed; inset:0; z-index:80; box-shadow:0 
    Bảng ghim · dấu o/x · biểu đồ cuộn ngang · hàng điểm danh ở Tổng quan
    ============================================================================ */
 
-/* Bảng Thu theo đợt và Điểm danh cao 17 dòng và rộng hơn màn hình. Ghim cả hàng
-   tiêu đề, cột tên và hàng Tổng để lúc nào cũng biết mình đang ở ô của ai, đợt nào. */
+/* Bảng Thu theo đợt và Điểm danh rộng hơn màn hình nhưng KHÔNG cắt theo chiều dọc:
+   hiện đủ cả 17 dòng, chỉ cuộn ngang. Cuộn dọc là việc của cả trang.
+   Chỉ khai overflow-x — không đặt max-height, nên khung cao vừa đúng nội dung và
+   không bao giờ mọc thanh cuộn dọc riêng.
+   Cột tên vẫn dính bên trái khi cuộn ngang (quy tắc table.matrix .sticky-col ở trên). */
 .table-scroll.pinned{
-  max-height:min(72vh, 620px); overflow:auto;
+  overflow-x:auto; -webkit-overflow-scrolling:touch;
   border:1px solid var(--line); border-radius:10px;
 }
 .table-scroll.pinned table{ margin:0; }
-.table-scroll.pinned thead th{ position:sticky; top:0; z-index:3; }
-/* --head1 do pinHeaderRows() trong js/utils.js đo và gán */
-.table-scroll.pinned thead tr:nth-child(2) th{ top:var(--head1, 43px); }
-.table-scroll.pinned thead th.sticky-col,
-.table-scroll.pinned tfoot td.sticky-col{ z-index:5; }
-.table-scroll.pinned tfoot td{ position:sticky; bottom:0; z-index:3; box-shadow:0 -1px 0 var(--line); }
-/* hàng tiêu đề cần nền kín, không thì chữ ở dưới hiện xuyên qua khi cuộn */
 .table-scroll.pinned thead th{ background:var(--surface-2); }
 
 /* dấu tham gia: ký hiệu o / x của nhóm, màu lo phần còn lại */
@@ -568,7 +564,6 @@ button.toggle-cell:not(.o):not(.x){ color:var(--ink-3); font-weight:400; }
 
 @media (max-width:560px){
   .stat.lead .value{ font-size:23px; }
-  .table-scroll.pinned{ max-height:min(68vh, 520px); }
   /* nhãn "Tham gia" cho xuống dòng để cột hẹp lại, thấy được nhiều đợt hơn */
   .table-scroll.pinned thead tr:nth-child(2) th{ white-space:normal; }
   /* ô tiền hẹp lại để thấy được nhiều đợt hơn trong một màn hình */

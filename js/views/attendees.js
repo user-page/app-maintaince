@@ -1,6 +1,6 @@
 // Tab "Điểm danh" — CÙNG dữ liệu với cột "Tham gia" ở tab Thu theo đợt, chỉ khác cách trình bày
 // (bỏ cột tiền cho dễ nhìn). Sửa ở đây thì tab kia đổi theo và ngược lại — không còn hai nguồn lệch nhau.
-import { el, esc, fmtDate, pinHeaderRows } from '../utils.js';
+import { el, esc, fmtDate } from '../utils.js';
 import {
   getMembers, getPeriods, cellFor, getCanEdit,
   periodJoinCount, sessionsAttended, pastPeriods, isUpcoming, cycleJoined, onChange
@@ -69,5 +69,4 @@ function render(){
   scroll.appendChild(table);
   tableHost.innerHTML = '';
   tableHost.appendChild(scroll);
-  pinHeaderRows(scroll);
 }
