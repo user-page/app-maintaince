@@ -24,6 +24,7 @@ js/
   views/
     overview.js       tab Tổng quan (chỉ xem, tự tính)
     collection.js     tab Thu theo đợt — bảng chính, nhập liệu ở đây
+    unpaid.js         tab Chưa đóng (chỉ xem, tự tính) — danh sách đi nhắc tiền
     expenses.js       tab Chi tiêu (thêm/sửa/xoá khoản chi)
     summary.js        tab Đóng góp (chỉ xem, tự tính)
     attendees.js      tab Điểm danh (cùng dữ liệu với cột Tham gia)
@@ -123,6 +124,18 @@ Bốn collection trên Firestore:
 - Chênh lệch = tổng thu + tổng chi
 - Số buổi tham gia = đếm ô `joined = 'o'` trong các đợt đã có ngày
 - Tab Điểm danh = chính cột `joined` đó, không phải bảng riêng
+- Tab Chưa đóng = ghép `amount` với `joined`, không phải danh sách riêng. `hasPaid()` trong
+  `dataStore.js` định nghĩa "đã đóng" (phải là số **dương**); `payStatus()` phán định tiếp:
+
+  | ô tiền | Tham gia | phán định | ý nghĩa |
+  |---|---|---|---|
+  | có số dương | bất kỳ | `paid` | đã đóng |
+  | trống | `o` | `owed` | **còn nợ** — đi rồi mà chưa đóng, đây là danh sách cần nhắc |
+  | trống | `x` | `absent` | vắng mặt — để riêng, **không** cộng vào nợ |
+  | trống | chưa ghi | `unknown` | buổi chưa điểm danh, chưa phán được |
+
+  Không tự kết luận "vắng thì được miễn": trong sổ vẫn có người vắng mà vẫn đóng, nên nhóm
+  `absent` chỉ hiện ra để chủ trang tự quyết
 
 Nhờ vậy thêm/sửa/xoá ở bất kỳ tab nào thì tất cả các tab khác tự khớp theo.
 
@@ -138,7 +151,9 @@ Sau khi đăng nhập:
   `⋯` trên đầu cột để đổi tên/ngày đợt hoặc xoá đợt (để trống tên rồi OK là xoá).
 - **Chi tiêu** — `+ Thêm khoản chi`, sửa từng ô rồi bấm **Lưu**, `×` để xoá.
 - **Điểm danh** — bấm o/x, cùng dữ liệu với cột Tham gia.
-- **Đóng góp**, **Tổng quan** — chỉ xem, tự tính.
+- **Đóng góp**, **Tổng quan**, **Chưa đóng** — chỉ xem, tự tính. Tab Chưa đóng có nút
+  *Copy tên* ở mỗi đợt, chép sẵn câu nhắc kèm danh sách tên để dán vào nhóm chat.
+  Muốn một người biến khỏi danh sách nợ thì hoặc điền tiền, hoặc bấm ô Tham gia về `x`.
 
 Đóng tab lúc còn thay đổi chưa lưu thì trình duyệt sẽ hỏi lại.
 

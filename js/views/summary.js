@@ -1,7 +1,7 @@
 // Tab "Đóng góp" — hoàn toàn TÍNH RA từ bảng thu, không có số cứng và không nhập gì ở đây.
 // Sửa một ô tiền ở tab Thu theo đợt là bảng này đổi ngay.
 import { el, esc, fmt } from '../utils.js';
-import { getMembers, getPeriods, cellFor, memberTotal, totalThu, sessionsAttended, pastPeriods, onChange } from '../dataStore.js';
+import { getMembers, getPeriods, hasPaid, memberTotal, totalThu, sessionsAttended, pastPeriods, onChange } from '../dataStore.js';
 
 let tableHost = null;
 
@@ -46,10 +46,7 @@ function render(){
   const members = getMembers(), periods = getPeriods(), nPast = pastPeriods().length;
 
   const rows = members.map(function(m){
-    const paidTimes = periods.filter(function(p){
-      const a = cellFor(m.id, p.id).amount;
-      return typeof a === 'number' && a > 0;
-    }).length;
+    const paidTimes = periods.filter(function(p){ return hasPaid(m.id, p.id); }).length;
     return { name: m.name, total: memberTotal(m.id), times: paidTimes, sessions: sessionsAttended(m.id) };
   });
 

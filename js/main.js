@@ -8,6 +8,7 @@ import {
 import { initAuth } from './auth.js';
 import { buildOverview } from './views/overview.js';
 import { buildCollection } from './views/collection.js';
+import { buildUnpaid } from './views/unpaid.js';
 import { buildExpenses } from './views/expenses.js';
 import { buildSummary } from './views/summary.js';
 import { buildAttendees } from './views/attendees.js';
@@ -15,6 +16,7 @@ import { buildAttendees } from './views/attendees.js';
 const TABS = [
   { id: 'overview',   label: 'Tổng quan' },
   { id: 'collection', label: 'Thu theo đợt' },
+  { id: 'unpaid',     label: 'Chưa đóng' },
   { id: 'expenses',   label: 'Chi tiêu' },
   { id: 'summary',    label: 'Đóng góp' },
   { id: 'attendees',  label: 'Điểm danh' }
@@ -66,9 +68,10 @@ function buildTabsAndPanels(){
 
   const p1 = makePanel('overview', false);   panels.appendChild(p1); buildOverview(p1);
   const p2 = makePanel('collection', true);  panels.appendChild(p2); buildCollection(p2);
-  const p3 = makePanel('expenses', true);    panels.appendChild(p3); buildExpenses(p3);
-  const p4 = makePanel('summary', true);     panels.appendChild(p4); buildSummary(p4);
-  const p5 = makePanel('attendees', true);   panels.appendChild(p5); buildAttendees(p5);
+  const p3 = makePanel('unpaid', true);      panels.appendChild(p3); buildUnpaid(p3);
+  const p4 = makePanel('expenses', true);    panels.appendChild(p4); buildExpenses(p4);
+  const p5 = makePanel('summary', true);     panels.appendChild(p5); buildSummary(p5);
+  const p6 = makePanel('attendees', true);   panels.appendChild(p6); buildAttendees(p6);
 }
 
 async function boot(){

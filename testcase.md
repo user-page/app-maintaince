@@ -28,6 +28,14 @@ hardcode ở đâu. Nếu một trong các test này fail thì có chỗ nào đ
 | A8 | Ô tiền để trống | Tính là 0, không phải `NaN`, và không làm hỏng dòng tổng |
 | A9 | Đổi một ô tiền rồi lưu | Tất cả các tổng liên quan (đợt, người, Tổng quan) đổi theo ngay, không cần tải lại trang |
 | A10 | Cột "Số lần đóng" ở tab Đóng góp | Bằng số đợt mà người đó có số tiền > 0 — đếm tay một người để đối chiếu |
+| A11 | Tab Chưa đóng · một đợt bất kỳ | "đã đóng x/y" + số tên ở ba dòng *Còn nợ* + *Chưa rõ* + *Vắng* = y = tổng thành viên. Không tên nào xuất hiện ở hai dòng |
+| A12 | Tab Chưa đóng · ô "Lượt còn nợ" và "Chưa rõ" | Bằng đúng hai ô tương ứng ở hàng Tổng của bảng *Còn nợ theo người*, và bằng tổng số tên trên các dòng cùng tên ở phần theo đợt |
+| A13 | Một người có `o` ở một đợt mà ô tiền trống | Phải nằm ở dòng **Còn nợ** của đợt đó. Gõ tiền cho người đó rồi bấm Lưu → tên biến mất ngay, số đếm giảm theo, không cần tải lại trang |
+| A14 | Gõ số `0` vào một ô tiền | Vẫn tính là **chưa đóng** (phải là số dương mới tính đã đóng) — người đó vẫn ở nguyên dòng cũ |
+| A15 | Bấm ô Tham gia của một người đang "Còn nợ" từ `o` sang `x` | Chuyển xuống dòng **Vắng**, "Lượt còn nợ" giảm 1 — vắng không cộng vào nợ |
+| A16 | Bấm ô Tham gia từ `x` về trống | Chuyển sang dòng **Chưa rõ**, không vào nợ |
+| A17 | Thêm một đợt mới chưa điểm danh, chưa ai đóng | Đợt đó đứng đầu, nhãn "chưa rõ N người", **không** làm "Lượt còn nợ" tăng; ngày còn ở tương lai thì thêm nền "sắp tới" và vẫn hiện — tiền buổi tới thường thu trước |
+| A18 | Người vắng mà vẫn đóng tiền (sổ hiện có 3 ô như vậy) | Tính là **đã đóng**, không hiện ở dòng Vắng |
 
 > Ba cách gọi một đợt, đừng lẫn — xem `isPast()` / `datedPeriods()` / `pastPeriods()` trong
 > `js/dataStore.js`:
@@ -155,7 +163,7 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G3 | Số cột ở bảng điểm danh | Khớp với số đợt — đếm đúng, không lẫn hai cột "No" và "Người" |
 | G4 | Chế độ tối của hệ điều hành | Chữ vẫn đọc được, không chỗ nào chữ trắng trên nền trắng |
 | G5 | Số tiền | Hiển thị có dấu chấm phân cách nghìn, số âm có dấu trừ rõ ràng |
-| G6 | Chuyển qua lại giữa 5 tab | Không lỗi JS trong Console (mở `⌥⌘I`) |
+| G6 | Chuyển qua lại giữa 6 tab | Không lỗi JS trong Console (mở `⌥⌘I`) |
 | G7 | Thứ tự cột đợt ở tab Thu theo đợt và tab Điểm danh | **Mới nhất bên trái**: Đợt 6, Đợt 5, … Đợt 1. Đợt chưa chốt ngày đứng trước tất cả. Hai tab cùng một thứ tự |
 | G8 | Thứ tự dòng ở tab Chi tiêu | Ngày giảm dần; khoản vừa thêm nằm trên cùng |
 | G9 | Biểu đồ ở Tổng quan | Vẫn đọc trái → phải theo thời gian, cũ → mới |
@@ -181,6 +189,12 @@ Tổng quan · Thu theo đợt · Chi tiêu · Đóng góp · Điểm danh.
 | G31 | Người cùng số ở cột đang sắp | Xét tiếp Tổng đã đóng rồi tên — thứ tự không nhảy ngẫu nhiên giữa các lần vẽ |
 | G22 | Biểu đồ trên điện thoại | Chữ vẫn đọc được, cuộn ngang trong khung của nó chứ không bị thu nhỏ |
 | G23 | Ô tiền trong bảng | Rộng 78px trên máy tính, 62px trên điện thoại — không bị `min-width` của ô chữ nong ra 90px |
+| G32 | Thứ tự đợt ở tab Chưa đóng | Mới nhất trên cùng, cùng thứ tự với tab Thu theo đợt |
+| G33 | Nút *Copy tên* | Dán ra được dòng "Đợt N (ngày) — x người đi rồi mà chưa đóng:" kèm danh sách; đợt chưa điểm danh thì câu đổi thành "(buổi chưa điểm danh)". Bấm xong nút đổi thành "✓ Đã copy" rồi trở lại sau ~1,5 giây |
+| G34 | Đợt không còn ai nợ | Hiện pill xanh "không ai nợ", **không** có nút Copy tên |
+| G35 | Tab Chưa đóng trên điện thoại (390px) | Dòng "đã đóng x/y · thu …" và nút Copy tên nằm cùng một dòng, dàn hai đầu; chip tên tự xuống dòng, không trượt ngang |
+| G36 | Ba dòng phán định trong một đợt | Nhãn CÒN NỢ / CHƯA RÕ / VẮNG thẳng cột với nhau; *Còn nợ* dùng chip vàng, *Chưa rõ* chip xám, *Vắng* chỉ là chữ nhạt — nhìn là phân biệt được mức ưu tiên |
+| G37 | Chú thích màu dưới phần mô tả | Có đủ 3 mục, màu chấm khớp với màu chip đang dùng ở dưới, đọc được cả ở chế độ tối |
 
 > G1 từng lỗi 6px vì `nav.tabs` có margin âm không khớp padding của `body` ở màn hình nhỏ.
 > G3 từng đếm thừa 2 vì lấy thẳng `headers.length`.

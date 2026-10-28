@@ -86,11 +86,53 @@ export function periodTotal(pid){
 export function periodJoinCount(pid){
   return members.reduce(function(s, m){ return s + (cellFor(m.id, pid).joined === 'o' ? 1 : 0); }, 0);
 }
+// Một ô tính là ĐÃ ĐÓNG khi có số tiền dương. Ô trống, số 0 và số âm đều là CHƯA ĐÓNG.
+// Cả trang chỉ định nghĩa việc này ở đây — tab Chưa đóng, cột "Số lần đóng" ở tab Đóng góp
+// và hàng "đã đóng" ở tab Thu theo đợt đều gọi vào hàm này nên không bao giờ lệch nhau.
+export function hasPaid(mid, pid){
+  const a = cellFor(mid, pid).amount;
+  return typeof a === 'number' && a > 0;
+}
 export function periodPaidCount(pid){
-  return members.reduce(function(s, m){
-    const a = cellFor(m.id, pid).amount;
-    return s + (typeof a === 'number' && a > 0 ? 1 : 0);
-  }, 0);
+  return members.reduce(function(s, m){ return s + (hasPaid(m.id, pid) ? 1 : 0); }, 0);
+}
+
+// ---------- phán định: đã đóng / còn nợ / vắng / chưa rõ ----------
+// Chỉ nhìn ô tiền thì ai cũng thành con nợ — người chưa vào nhóm, buổi vắng mặt và buổi
+// chưa điểm danh đều để lại một ô trống y như nhau. Nên phải ghép thêm cột Tham gia:
+//
+//   có số tiền dương          -> 'paid'     đã đóng, hết chuyện
+//   trống + Tham gia 'o'      -> 'owed'     ĐI RỒI MÀ CHƯA ĐÓNG — đây mới là nợ thật
+//   trống + Tham gia 'x'      -> 'absent'   vắng mặt. KHÔNG tự kết luận là được miễn:
+//                                           trong sổ vẫn có người vắng mà đóng, nên để
+//                                           riêng một nhóm cho chủ trang tự quyết
+//   trống + chưa đánh dấu gì  -> 'unknown'  buổi chưa điểm danh, chưa phán được
+export function payStatus(mid, pid){
+  if(hasPaid(mid, pid)) return 'paid';
+  const j = cellFor(mid, pid).joined;
+  if(j === 'o') return 'owed';
+  if(j === 'x') return 'absent';
+  return 'unknown';
+}
+
+// Gom thành viên của một đợt (giữ thứ tự sort_order) và gom các đợt của một người
+// (giữ thứ tự mới nhất trước) theo đúng bốn nhóm trên.
+export function periodByStatus(pid){
+  const out = { paid: [], owed: [], absent: [], unknown: [] };
+  members.forEach(function(m){ out[payStatus(m.id, pid)].push(m); });
+  return out;
+}
+export function memberByStatus(mid){
+  const out = { paid: [], owed: [], absent: [], unknown: [] };
+  periods.forEach(function(p){ out[payStatus(mid, p.id)].push(p); });
+  return out;
+}
+export function countByStatus(){
+  const out = { paid: 0, owed: 0, absent: 0, unknown: 0 };
+  members.forEach(function(m){
+    periods.forEach(function(p){ out[payStatus(m.id, p.id)]++; });
+  });
+  return out;
 }
 export function sessionsAttended(mid){
   return pastPeriods().reduce(function(s, p){ return s + (cellFor(mid, p.id).joined === 'o' ? 1 : 0); }, 0);

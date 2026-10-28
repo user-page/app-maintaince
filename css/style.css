@@ -572,3 +572,66 @@ button.toggle-cell:not(.o):not(.x){ color:var(--ink-3); font-weight:400; }
   .attend-row{ grid-template-columns:minmax(0,1fr) auto 38px; gap:9px; }
   .mk{ width:14px; height:14px; border-radius:3px; }
 }
+
+/* ============================================================================
+   Tab "Chưa đóng" (js/views/unpaid.js)
+
+   Mục đích là đi nhắc tiền, nên mỗi đợt là một khối riêng đọc được trong một
+   nhịp mắt: tên đợt → còn mấy người → tên những người đó. Tên người là chip
+   chứ không phải câu liệt kê, để đếm bằng mắt và dò nhanh tên mình.
+   ========================================================================= */
+.unpaid-list{ display:flex; flex-direction:column; gap:1px; background:var(--line);
+  border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-top:16px; }
+.unpaid-period{ background:var(--surface); padding:12px 14px 13px; }
+/* đợt chưa tới ngày — cùng nền với cột "sắp tới" ở bảng Thu theo đợt */
+.unpaid-period.upcoming{ background:var(--accent-soft); }
+.up-head{ display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px; }
+.up-name{ font-family:'Source Serif 4', Georgia, serif; font-size:15px; font-weight:600;
+  display:flex; align-items:baseline; gap:7px; }
+.up-name .sub-date{ font-family:'Public Sans', sans-serif; font-size:11.5px;
+  font-weight:400; color:var(--ink-3); }
+/* số liệu của đợt + nút copy đi liền một khối, dạt sang phải; trên điện thoại cả khối
+   xuống dòng và dàn hai đầu, để nút không rơi xuống một dòng trống của riêng nó */
+.up-tail{ display:flex; align-items:center; gap:10px; margin-left:auto; }
+.up-meta{ font-size:12px; color:var(--ink-2); white-space:nowrap; }
+.up-head .up-copy{ padding:4px 10px; font-size:11.5px; white-space:nowrap; }
+.up-empty{ background:var(--surface); padding:14px; font-size:13px; color:var(--ink-3); }
+
+/* Ba dòng phán định của một đợt. Nhãn bên trái rộng cố định để ba dòng thẳng cột với
+   nhau, mắt chỉ cần dò một đường dọc. Dòng "Còn nợ" là việc phải làm nên đậm nhất;
+   "Vắng" là thông tin tham khảo nên chỉ là chữ nhạt, không làm thành chip. */
+.up-line{ display:flex; gap:9px; margin-top:9px; align-items:flex-start; }
+.up-tag{
+  flex:0 0 52px; font-size:10.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  padding-top:4px; color:var(--ink-3);
+}
+.up-line.owed .up-tag{ color:var(--warn); }
+.up-chips{ display:flex; flex-wrap:wrap; gap:5px; min-width:0; }
+.up-plain{ font-size:12px; color:var(--ink-3); padding-top:3px; min-width:0; }
+
+/* chú thích cách phán định, ngay dưới phần mô tả */
+.verdict-key{
+  display:flex; flex-wrap:wrap; gap:6px 18px; font-size:11.5px; color:var(--ink-2);
+  margin:-6px 0 14px;
+}
+.verdict-key strong{ color:var(--ink); font-weight:600; }
+.key-dot{
+  display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; vertical-align:-1px;
+}
+.key-dot.owed{ background:var(--warn); }
+.key-dot.unknown{ background:var(--ink-3); }
+.key-dot.absent{ background:var(--surface-2); box-shadow:inset 0 0 0 1px var(--line); }
+
+/* chip tên người — dùng cả ở khối theo đợt và ở cột "Đợt còn thiếu" của bảng */
+.who-chip{ font-size:12px; padding:3px 9px; border-radius:999px;
+  background:var(--warn-soft); color:var(--ink); box-shadow:inset 0 0 0 1px transparent; }
+.who-chip.muted{ background:var(--surface-2); color:var(--ink-2); box-shadow:inset 0 0 0 1px var(--line); }
+.unpaid-period.upcoming .who-chip.muted{ background:var(--surface); }
+
+/* ô chứa nhiều chip thì cho xuống dòng, khác với mặc định nowrap của bảng */
+td.wrap-cell{ white-space:normal; min-width:200px; }
+td.wrap-cell .who-chip{ display:inline-block; margin:2px 3px 2px 0; }
+
+@media (max-width:560px){
+  .up-tail{ margin-left:0; width:100%; justify-content:space-between; }
+}
